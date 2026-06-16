@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Rock Solid Analytics — Tagger</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #070c18; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+#root { min-height: 100vh; }
+input, button, select { font-family: inherit; }
+select option { background: #0d1525; color: #e8edf5; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const {useState, useEffect, useRef, useCallback} = React;
+
+const C = {
+  bg:"#070c18",bgCard:"#0d1525",bgDark:"#080f20",border:"#111a2e",
+  borderB:"#1a2a4a",navy:"#0B1C35",navyL:"#152d52",
+  green:"#1e5c38",greenB:"#34c967",blue:"#4a9eff",
+  gold:"#f0c040",red:"#e04545",slate:"#7a90aa",white:"#eef2f8",
+  purple:"#9b59b6"
+};
+
+// ── DATA ──
+const PROVINCES = {
+  leinster:{name:"Leinster",col1:"#0055a4",col2:"#fff",counties:[
+    {name:"Carlow",col1:"#cc0000",col2:"#00a651",active:false},{name:"Dublin",col1:"#003366",col2:"#87CEEB",active:true},
+    {name:"Kildare",col1:"#fff",col2:"#000",active:true},{name:"Kilkenny",col1:"#000",col2:"#f0c040",active:false},
+    {name:"Laois",col1:"#0055a4",col2:"#fff",active:false},{name:"Longford",col1:"#0055a4",col2:"#f0c040",active:false},
+    {name:"Louth",col1:"#cc0000",col2:"#fff",active:false},{name:"Meath",col1:"#006633",col2:"#f0c040",active:true},
+    {name:"Offaly",col1:"#006633",col2:"#fff",active:false},{name:"Westmeath",col1:"#800000",col2:"#fff",active:false},
+    {name:"Wexford",col1:"#800080",col2:"#f0c040",active:true},{name:"Wicklow",col1:"#0055a4",col2:"#f0c040",active:true}]},
+  munster:{name:"Munster",col1:"#0055a4",col2:"#fff",counties:[
+    {name:"Clare",col1:"#f0c040",col2:"#0055a4",active:false},{name:"Cork",col1:"#cc0000",col2:"#fff",active:false},
+    {name:"Kerry",col1:"#006633",col2:"#f0c040",active:true},{name:"Limerick",col1:"#006633",col2:"#fff",active:false},
+    {name:"Tipperary",col1:"#0055a4",col2:"#f0c040",active:true},{name:"Waterford",col1:"#fff",col2:"#0055a4",active:false}]},
+  connacht:{name:"Connacht",col1:"#006633",col2:"#fff",counties:[
+    {name:"Galway",col1:"#800000",col2:"#fff",active:true},{name:"Leitrim",col1:"#006633",col2:"#f0c040",active:true},
+    {name:"Mayo",col1:"#006633",col2:"#cc0000",active:true},{name:"Roscommon",col1:"#f0c040",col2:"#0055a4",active:true},
+    {name:"Sligo",col1:"#000",col2:"#fff",active:true}]},
+  ulster:{name:"Ulster",col1:"#f0c040",col2:"#fff",counties:[
+    {name:"Antrim",col1:"#f0c040",col2:"#fff",active:false},{name:"Armagh",col1:"#ff8c00",col2:"#fff",active:false},
+    {name:"Cavan",col1:"#0055a4",col2:"#fff",active:false},{name:"Derry",col1:"#cc0000",col2:"#fff",active:false},
+    {name:"Donegal",col1:"#006633",col2:"#f0c040",active:false},{name:"Down",col1:"#cc0000",col2:"#000",active:false},
+    {name:"Fermanagh",col1:"#006633",col2:"#fff",active:false},{name:"Monaghan",col1:"#fff",col2:"#0055a4",active:false},
+    {name:"Tyrone",col1:"#fff",col2:"#cc0000",active:false}]}
+};
+
+const CLUB_DATA={
+"Dublin":[{n:"Ballyboughal",c1:'#1a7a3a',c2:'#ffffff',lat:53.5253,lng:-6.2694},{n:"Ballyfermot De La Salle",c1:'#1a7a3a',c2:'#f0c040',lat:53.3435,lng:-6.3422},{n:"Ballymun Kickhams",c1:'#cc2222',c2:'#1a7a3a',lat:53.4173,lng:-6.2629},{n:"Beann Eadair",c1:'#1a5dad',c2:'#ffffff',lat:53.3791,lng:-6.0675},{n:"Cabinteely",c1:'#1a5dad',c2:'#ffffff',lat:53.2603,lng:-6.1402},{n:"Castleknock",c1:'#1a5dad',c2:'#f5e000',lat:53.3644,lng:-6.3873},{n:"Civil Service Football",c1:'#7a1f2b',c2:'#f5e000',lat:53.3449,lng:-6.3119},{n:"Clanna Gael, Fontenoy",c1:'#1a5dad',c2:'#1a7a3a',lat:53.3377,lng:-6.2163},{n:"Clontarf",c1:'#cc2222',c2:'#ffffff',lat:53.3695,lng:-6.1843},{n:"Craobh Chiar\u00e1in",c1:'#7a1f2b',c2:'#f5e000',lat:53.4089,lng:-6.1988},{n:"Cro\u00ed R\u00f3 Naofa",c1:'#ffffff',c2:'#cc2222',lat:53.2768,lng:-6.3843},{n:"Crumlin",c1:'#1a4fd6',c2:'#ffffff',lat:53.3232,lng:-6.3157},{n:"Cuala",c1:'#cc2222',c2:'#ffffff',lat:53.2715,lng:-6.1354},{n:"Erin Go Bragh",c1:'#1a7a3a',c2:'#ffffff',lat:53.4011,lng:-6.4281},{n:"Erins Isle",c1:'#1a7a3a',c2:'#1a1a1a',lat:53.3843,lng:-6.2979},{n:"Faughs",c1:'#f0c040',c2:'#1a7a3a',lat:53.2958,lng:-6.3295},{n:"Fingal Ravens",c1:'#1a1a1a',c2:'#ffffff',lat:53.5038,lng:-6.3049},{n:"Fingallians",c1:'#cc2222',c2:'#ffffff',lat:53.4674,lng:-6.2127},{n:"Foxrock Cabinteely",c1:'#1a5dad',c2:'#1a7a3a',lat:53.2598,lng:-6.1401},{n:"Garristown",c1:'#5ec6f0',c2:'#1a2a5e',lat:53.5663,lng:-6.3771},{n:"Geraldine P. Morans",c1:'#1a1a1a',c2:'#ffb300',lat:53.2674,lng:-6.1628},{n:"Good Counsel",c1:'#1a1a1a',c2:'#ffffff',lat:53.3358,lng:-6.3069},{n:"Innisfails",c1:'#1a7a3a',c2:'#1a1a1a',lat:53.4111,lng:-6.1851},{n:"Kevins",c1:'#1a5dad',c2:'#ffffff',lat:53.33,lng:-6.2951},{n:"Kilmacud Crokes",c1:'#6a3aa0',c2:'#f0c040',lat:53.2733,lng:-6.1934},{n:"Liffey Gaels",c1:'#7a1f2b',c2:'#5ec6f0',lat:53.3432,lng:-6.3266},{n:"Lucan Sarsfields",c1:'#ffffff',c2:'#1a7a3a',lat:53.3311,lng:-6.4599},{n:"Na Fianna",c1:'#f5e000',c2:'#1a5dad',lat:53.3748,lng:-6.2643},{n:"Na Gaeil \u00d3ga CLG",c1:'#1a2a5e',c2:'#1a5dad',lat:53.3662,lng:-6.4663},{n:"Naomh Barr\u00f3g, Kilbarrack",c1:'#1a7a3a',c2:'#cc2222',lat:53.3898,lng:-6.1513},{n:"Naomh Fionnbarra",c1:'#1a5dad',c2:'#ffffff',lat:53.3679,lng:-6.3054},{n:"Naomh Mearn\u00f3g, Portmarnock",c1:'#1a1a1a',c2:'#ffb300',lat:53.4378,lng:-6.1444},{n:"Naomh Olaf",c1:'#6b7280',c2:'#1a5dad',lat:53.2812,lng:-6.2234},{n:"O'Tooles",c1:'#1a7a3a',c2:'#ffffff',lat:53.3979,lng:-6.1845},{n:"Parnells",c1:'#1a1a1a',c2:'#1a7a3a',lat:53.3884,lng:-6.2059},{n:"Raheny",c1:'#7a1f2b',c2:'#ffffff',lat:53.3757,lng:-6.1697},{n:"Realt Dearg",c1:'#1a7a3a',c2:'#cc2222',lat:53.3257,lng:-6.3346},{n:"Robert Emmets",c1:'#1a7a3a',c2:'#ffffff',lat:53.3102,lng:-6.3221},{n:"Round Towers Clondalkin",c1:'#1a7a3a',c2:'#ffffff',lat:53.3176,lng:-6.384},{n:"Round Towers Lusk",c1:'#1a5dad',c2:'#ffffff',lat:53.5279,lng:-6.1783},{n:"Scoil U\u00ed Chonaill",c1:'#1a4fd6',c2:'#7a1f2b',lat:53.3617,lng:-6.2063},{n:"Setanta",c1:'#1a2a5e',c2:'#5ec6f0',lat:53.3912,lng:-6.2663},{n:"Shankill",c1:'#ffffff',c2:'#1a5dad',lat:53.2405,lng:-6.1132},{n:"Skerries Harps",c1:'#1a5dad',c2:'#ffffff',lat:53.578,lng:-6.1134},{n:"St. Annes",c1:'#1a5dad',c2:'#ffffff',lat:53.2701,lng:-6.3549},{n:"St. Brigids",c1:'#cc2222',c2:'#ffffff',lat:53.3767,lng:-6.3532},{n:"St. Colmcilles, Balheary",c1:'#1a4fd6',c2:'#ffb300',lat:53.467,lng:-6.2215},{n:"St. Enda's, Ballyboden",c1:'#1a5dad',c2:'#ffffff',lat:53.2888,lng:-6.3174},{n:"St. Finian's, Newcastle",c1:'#1a7a3a',c2:'#cc2222',lat:53.3026,lng:-6.4861},{n:"St. Finian's, Swords",c1:'#7a1f2b',c2:'#ffffff',lat:53.4547,lng:-6.2428},{n:"St. James Gaels",c1:'#1a5dad',c2:'#f5e000',lat:53.3295,lng:-6.3065},{n:"St. Judes",c1:'#1a2a5e',c2:'#5ec6f0',lat:53.2956,lng:-6.3305},{n:"St. Kevins Killians",c1:'#1a7a3a',c2:'#ffffff',lat:53.3096,lng:-6.3749},{n:"St. Margarets",c1:'#1a7a3a',c2:'#f0c040',lat:53.442,lng:-6.3016},{n:"St. Marks",c1:'#ffb300',c2:'#1a1a1a',lat:53.2887,lng:-6.3889},{n:"St. Marys, Saggart",c1:'#1a5dad',c2:'#1a7a3a',lat:53.2794,lng:-6.4412},{n:"St. Maurs",c1:'#7a1f2b',c2:'#f0c040',lat:53.5325,lng:-6.1071},{n:"St. Oliver Plunkett Eoghan Ruadh",c1:'#7a1f2b',c2:'#f0c040',lat:53.3508,lng:-6.3116},{n:"St. Patricks, Donabate",c1:'#1a7a3a',c2:'#1a1a1a',lat:53.4853,lng:-6.1317},{n:"St. Patricks, Palmerstown",c1:'#cc2222',c2:'#ffffff',lat:53.3473,lng:-6.3631},{n:"St. Peregrines",c1:'#1a1a1a',c2:'#ffffff',lat:53.3946,lng:-6.4048},{n:"St. Sylvesters, Malahide",c1:'#1a5dad',c2:'#1a7a3a',lat:53.4386,lng:-6.1499},{n:"St. Vincents",c1:'#ffffff',c2:'#1a5dad',lat:53.3736,lng:-6.2299},{n:"Starlights GFC",c1:'#ffffff',c2:'#1a1a1a',lat:53.418,lng:-6.2587},{n:"Stars of Erin",c1:'#1a7a3a',c2:'#cc2222',lat:53.2195,lng:-6.2276},{n:"Templeogue Synge Street",c1:'#1a5dad',c2:'#f5e000',lat:53.3286,lng:-6.2927},{n:"Thomas Davis",c1:'#1a7a3a',c2:'#f0c040',lat:53.2722,lng:-6.3629},{n:"Trinity Gaels",c1:'#cc2222',c2:'#1a1a1a',lat:53.4148,lng:-6.1648},{n:"Tyrellstown",c1:'#1a2a5e',c2:'#1a7a3a',lat:53.4215,lng:-6.3834},{n:"Wanderers, Ballyboden",c1:'#1a1a1a',c2:'#cc2222',lat:53.2601,lng:-6.3027},{n:"Whitehall Colmcille",c1:'#cc2222',c2:'#ffffff',lat:53.3808,lng:-6.2428},{n:"Wild Geese, Oldtown",c1:'#1a1a1a',c2:'#ffb300',lat:53.5264,lng:-6.3154}],
+"Galway":[{n:"Abbeyknockmoy Hurling",c1:'#1a5dad',c2:'#cc2222',lat:53.4381,lng:-8.7275},{n:"Ahascragh/Fohenagh",c1:'#1a5dad',c2:'#ffffff',lat:53.3996,lng:-8.3249},{n:"Ardrahan",c1:'#1a5dad',c2:'#ffffff',lat:53.1567,lng:-8.8027},{n:"Ballinasloe",c1:'#1a1a1a',c2:'#ffb300',lat:53.3251,lng:-8.2335},{n:"Barna",c1:'#f4c430',c2:'#1a5dad',lat:53.2677,lng:-9.1636},{n:"Beagh",c1:'#1a1a1a',c2:'#ffb300',lat:53.0165,lng:-8.8228},{n:"CLG C\u00e1rna-Caiseal",c1:'#f5e000',c2:'#7a1f2b',lat:53.3234,lng:-9.8301},{n:"CLG Mhaigh Cuilinn",c1:'#1a7a3a',c2:'#ffffff',lat:53.3595,lng:-9.175},{n:"CLG Mich\u00e1el Breathnach",c1:'#1a5dad',c2:'#ffffff',lat:53.2477,lng:-9.3683},{n:"CLG Naomh Anna, Leitir M\u00f3ir",c1:'#1a1a1a',c2:'#ffb300',lat:53.2783,lng:-9.6601},{n:"CLG an Cheathr\u00fa Ruaidh",c1:'#cc2222',c2:'#1a1a1a',lat:53.2572,lng:-9.6029},{n:"Caherlistrane",c1:'#ffffff',c2:'#1a5dad',lat:53.4912,lng:-9.0195},{n:"Caltra",c1:'#1a7a3a',c2:'#ffffff',lat:53.4356,lng:-8.4302},{n:"Cappataggle",c1:'#cc2222',c2:'#1a1a1a',lat:53.2708,lng:-8.4088},{n:"Carnmore",c1:'#cc2222',c2:'#ffffff',lat:53.3069,lng:-8.9063},{n:"Castlegar Hurling",c1:'#1a7a3a',c2:'#ffffff',lat:53.2767,lng:-8.9765},{n:"Claregalway",c1:'#1a7a3a',c2:'#f0c040',lat:53.3667,lng:-8.9141},{n:"Clarinbridge",c1:'#7a1f2b',c2:'#ffffff',lat:53.2304,lng:-8.8766},{n:"Corofin",c1:'#f5e000',c2:'#1a7a3a',lat:53.4374,lng:-8.8605},{n:"Cortoon Shamrocks",c1:'#5ec6f0',c2:'#ffffff',lat:53.5655,lng:-8.7994},{n:"Craughwell",c1:'#1a7a3a',c2:'#f0c040',lat:53.2299,lng:-8.7301},{n:"Cumann Peile na bPiarsaigh",c1:'#1a1a1a',c2:'#ffffff',lat:53.3859,lng:-9.6102},{n:"Dunmore MacHales",c1:'#1a7a3a',c2:'#ffffff',lat:53.6151,lng:-8.7429},{n:"Father Griffins/\u00c9ire \u00d3g",c1:'#ffffff',c2:'#7a1f2b',lat:53.2652,lng:-9.0536},{n:"Glenamaddy/Glinsk",c1:'#1a5dad',c2:'#f0c040',lat:53.6058,lng:-8.5527},{n:"Gort",c1:'#f5e000',c2:'#1a7a3a',lat:53.0445,lng:-8.8355},{n:"Headford",c1:'#1a5dad',c2:'#1a2a5e',lat:53.4732,lng:-9.0966},{n:"Kilconieron",c1:'#1a7a3a',c2:'#f0c040',lat:53.228,lng:-8.6293},{n:"Kilconly",c1:'#1a7a3a',c2:'#cc2222',lat:53.5544,lng:-8.912},{n:"Killannin",c1:'#1a5dad',c2:'#ffffff',lat:53.3869,lng:-9.2269},{n:"Killererin",c1:'#ffffff',c2:'#cc2222',lat:53.4818,lng:-8.7223},{n:"Killimordaly Hurling Club",c1:'#1a7a3a',c2:'#ffffff',lat:53.3025,lng:-8.623},{n:"Kilnadeema - Leitrim",c1:'#ffffff',c2:'#7a1f2b',lat:53.164,lng:-8.563},{n:"Kiltormer",c1:'#1a5dad',c2:'#ffffff',lat:53.2356,lng:-8.2752},{n:"Liam Mellows",c1:'#1a7a3a',c2:'#ffffff',lat:53.2709,lng:-9.0223},{n:"Loughrea",c1:'#1a5dad',c2:'#f0c040',lat:53.2025,lng:-8.5519},{n:"Meelick - Eyrecourt",c1:'#1a5dad',c2:'#ffffff',lat:53.2119,lng:-8.0941},{n:"Menlough",c1:'#1a7a3a',c2:'#f5e000',lat:53.4239,lng:-8.5896},{n:"Milltown",c1:'#1a5dad',c2:'#ffffff',lat:53.6146,lng:-8.9045},{n:"Mountbellew - Moylough",c1:'#1a1a1a',c2:'#ffb300',lat:53.4737,lng:-8.5042},{n:"Mullagh",c1:'#1a7a3a',c2:'#ffffff',lat:53.2233,lng:-8.3974},{n:"Naomh Feichin, Clifden",c1:'#ff8c00',c2:'#ffffff',lat:53.4916,lng:-10.0162},{n:"Naomh P\u00e1draig, Clonbur",c1:'#7a1f2b',c2:'#ffffff',lat:53.5498,lng:-9.3776},{n:"Oranmore-Maree",c1:'#5ec6f0',c2:'#1a2a5e',lat:53.272,lng:-8.9202},{n:"Oughterard",c1:'#1a7a3a',c2:'#ffffff',lat:53.4289,lng:-9.3164},{n:"Padraig Pearses, Ballymacward",c1:'#1a1a1a',c2:'#ffffff',lat:53.39,lng:-8.4766},{n:"Portumna",c1:'#1a5dad',c2:'#f5e000',lat:53.0889,lng:-8.2176},{n:"Rahoon Newcastle",c1:'#7a1f2b',c2:'#ffffff',lat:53.2905,lng:-9.1229},{n:"Salthill Knocknacarra",c1:'#1a5dad',c2:'#1a2a5e',lat:53.2628,lng:-9.0868},{n:"Sarsfields, Castlebin",c1:'#ffffff',c2:'#1a7a3a',lat:53.3018,lng:-8.4907},{n:"St Brendan's Football Club",c1:'#1a5dad',c2:'#1a2a5e',lat:53.5293,lng:-8.3214},{n:"St. James', Mervue",c1:'#7a1f2b',c2:'#1a7a3a',lat:53.2828,lng:-9.0169},{n:"St. Mary's, Athenry",c1:'#7a1f2b',c2:'#ffffff',lat:53.3054,lng:-8.7583},{n:"St. Michael's",c1:'#1a5dad',c2:'#ffffff',lat:53.2758,lng:-9.0789},{n:"Sylane Hurling",c1:'#1a1a1a',c2:'#ffb300',lat:53.5289,lng:-8.9369},{n:"Tommy Larkins",c1:'#cc2222',c2:'#1a1a1a',lat:53.0507,lng:-8.3971},{n:"Tuam Stars",c1:'#cc2222',c2:'#ffffff',lat:53.5075,lng:-8.8381},{n:"Tynagh-Abbey Duniry Hurling Club",c1:'#1a5dad',c2:'#1a7a3a',lat:53.1312,lng:-8.4088}],
+"Kerry":[{n:"Abbeydorney",c1:'#1a1a1a',c2:'#ffb300',lat:52.3487,lng:-9.691},{n:"An Ghaeltacht",c1:'#ffffff',c2:'#cc2222',lat:52.1815,lng:-10.3646},{n:"Annascaul",c1:'#1a5dad',c2:'#ffffff',lat:52.1531,lng:-10.0477},{n:"Ardfert",c1:'#1a1a1a',c2:'#ffffff',lat:52.3312,lng:-9.7782},{n:"Austin Stacks",c1:'#1a1a1a',c2:'#ffb300',lat:52.2766,lng:-9.713},{n:"Ballydonoghue",c1:'#1a7a3a',c2:'#ffffff',lat:52.486,lng:-9.5209},{n:"Ballyduff",c1:'#1a7a3a',c2:'#ffffff',lat:52.4513,lng:-9.6699},{n:"Ballyheigue",c1:'#ff8c00',c2:'#1a1a1a',lat:52.3866,lng:-9.8315},{n:"Ballylongford",c1:'#1a5dad',c2:'#ffffff',lat:52.5442,lng:-9.475},{n:"Beale",c1:'#1a7a3a',c2:'#cc2222',lat:52.5056,lng:-9.6717},{n:"Beaufort",c1:'#1a5dad',c2:'#f5e000',lat:52.0679,lng:-9.6393},{n:"Castlegregory",c1:'#1a7a3a',c2:'#f0c040',lat:52.259,lng:-10.015},{n:"Castleisland Desmonds",c1:'#ffffff',c2:'#1a5dad',lat:52.2378,lng:-9.4642},{n:"Causeway",c1:'#7a1f2b',c2:'#ffffff',lat:52.4106,lng:-9.7364},{n:"Churchill",c1:'#1a7a3a',c2:'#1a1a1a',lat:52.2749,lng:-9.7841},{n:"Clounmacon",c1:'#1a1a1a',c2:'#ffb300',lat:52.4819,lng:-9.4231},{n:"Cromane",c1:'#7a1f2b',c2:'#ffffff',lat:52.1031,lng:-9.8992},{n:"Crotta O'Neills",c1:'#cc2222',c2:'#1a7a3a',lat:52.3628,lng:-9.6341},{n:"Derrynane",c1:'#1a1a1a',c2:'#ffb300',lat:51.765,lng:-10.1041},{n:"Dingle",c1:'#cc2222',c2:'#ffffff',lat:52.1373,lng:-10.2675},{n:"Dr. Crokes",c1:'#1a1a1a',c2:'#ffb300',lat:52.0672,lng:-9.504},{n:"Dromid Pearses",c1:'#7a1f2b',c2:'#ffffff',lat:51.8943,lng:-10.0882},{n:"Duagh",c1:'#7a1f2b',c2:'#f0c040',lat:52.4122,lng:-9.389},{n:"Finuge",c1:'#1a7a3a',c2:'#f0c040',lat:52.4244,lng:-9.5323},{n:"Firies",c1:'#1a5dad',c2:'#1a2a5e',lat:52.1732,lng:-9.547},{n:"Fossa",c1:'#cc2222',c2:'#1a1a1a',lat:52.0691,lng:-9.5405},{n:"Glenbeigh-Glencar",c1:'#cc2222',c2:'#1a1a1a',lat:52.0583,lng:-9.9365},{n:"Glenflesk",c1:'#1a5dad',c2:'#f5e000',lat:52.0148,lng:-9.362},{n:"Gneeveguilla",c1:'#f5e000',c2:'#1a7a3a',lat:52.1197,lng:-9.2719},{n:"John Mitchels",c1:'#1a7a3a',c2:'#f5e000',lat:52.2477,lng:-9.6761},{n:"Kenmare Shamrocks",c1:'#1a1a1a',c2:'#cc2222',lat:51.8806,lng:-9.5694},{n:"Kerins O'Rahilly's",c1:'#1a5dad',c2:'#ffffff',lat:52.2669,lng:-9.7158},{n:"Kilcummin",c1:'#cc2222',c2:'#1a7a3a',lat:52.0979,lng:-9.4756},{n:"Kilgarvan",c1:'#cc2222',c2:'#ffffff',lat:51.9046,lng:-9.4521},{n:"Killarney Legion",c1:'#1a7a3a',c2:'#ffffff',lat:52.0726,lng:-9.5086},{n:"Kilmoyley",c1:'#1a7a3a',c2:'#f0c040',lat:52.3608,lng:-9.773},{n:"Laune Rangers",c1:'#1a5dad',c2:'#ffffff',lat:52.1054,lng:-9.8003},{n:"Listowel Emmets",c1:'#1a1a1a',c2:'#ffb300',lat:52.4469,lng:-9.4774},{n:"Lixnaw",c1:'#1a7a3a',c2:'#f0c040',lat:52.4025,lng:-9.6352},{n:"Milltown/Castlemaine",c1:'#1a7a3a',c2:'#ffffff',lat:52.1503,lng:-9.7162},{n:"Moyvane",c1:'#1a7a3a',c2:'#f0c040',lat:52.4991,lng:-9.3772},{n:"Na Gaeil",c1:'#1a7a3a',c2:'#ffffff',lat:52.2823,lng:-9.6897},{n:"Rathmore",c1:'#cc2222',c2:'#ffffff',lat:52.0646,lng:-9.2399},{n:"Renard",c1:'#1a5dad',c2:'#ffffff',lat:51.9298,lng:-10.2519},{n:"Scartaglin",c1:'#7a1f2b',c2:'#ffffff',lat:52.1859,lng:-9.4168},{n:"Skelligs Rangers",c1:'#1a7a3a',c2:'#f5e000',lat:51.8809,lng:-10.3701},{n:"Sneem",c1:'#6b7280',c2:'#1a7a3a',lat:51.8428,lng:-9.9014},{n:"Spa",c1:'#1a5dad',c2:'#f0c040',lat:52.0702,lng:-9.4679},{n:"St Michael's-Foilmore",c1:'#1a7a3a',c2:'#cc2222',lat:51.8291,lng:-10.2685},{n:"St Patricks East Kerry",c1:'#1a1a1a',c2:'#ffffff',lat:52.0698,lng:-9.5674},{n:"St. Brendan's Hurling, Ardfert",c1:'#1a5dad',c2:'#ffffff',lat:52.3312,lng:-9.7782},{n:"St. Mary's, Cahirciveen",c1:'#ffffff',c2:'#1a5dad',lat:51.9454,lng:-10.2342},{n:"St. Pats Blennerville",c1:'#cc2222',c2:'#ffffff',lat:52.2537,lng:-9.7347},{n:"St. Senan's",c1:'#1a5dad',c2:'#f5e000',lat:52.3959,lng:-9.5157},{n:"Tarbert",c1:'#cc2222',c2:'#1a1a1a',lat:52.5707,lng:-9.3735},{n:"Templenoe",c1:'#1a5dad',c2:'#ffffff',lat:51.8611,lng:-9.6884},{n:"Tuosist",c1:'#1a7a3a',c2:'#cc2222',lat:51.7651,lng:-9.7657},{n:"Valentia Young Islanders",c1:'#cc2222',c2:'#f5e000',lat:51.9056,lng:-10.3376},{n:"Waterville",c1:'#cc2222',c2:'#ffffff',lat:51.8258,lng:-10.1617}],
+"Kildare":[{n:"Allenwood",c1:'#5ec6f0',c2:'#1a2a5e',lat:53.29,lng:-6.8735},{n:"Athgarvan",c1:'#6b7280',c2:'#ffffff',lat:53.1489,lng:-6.801},{n:"Athy",c1:'#cc2222',c2:'#ffffff',lat:52.993,lng:-6.9697},{n:"Ballymore Eustace",c1:'#1a7a3a',c2:'#f0c040',lat:53.13,lng:-6.5871},{n:"Ballyteague",c1:'#1a7a3a',c2:'#f0c040',lat:53.266,lng:-6.8658},{n:"Broadford",c1:'#7a1f2b',c2:'#ffffff',lat:53.3901,lng:-6.9967},{n:"Cappagh",c1:'#cc2222',c2:'#ffffff',lat:53.3968,lng:-6.7515},{n:"Caragh",c1:'#7a1f2b',c2:'#ffffff',lat:53.2838,lng:-6.7628},{n:"Carbury",c1:'#f0c040',c2:'#1a5dad',lat:53.3444,lng:-6.9273},{n:"Castledermot",c1:'#1a5dad',c2:'#ffffff',lat:52.9107,lng:-6.8447},{n:"Castlemitchell",c1:'#1a7a3a',c2:'#ffffff',lat:53.0223,lng:-7.0325},{n:"Celbridge",c1:'#1a5dad',c2:'#ffffff',lat:53.3313,lng:-6.528},{n:"Clane",c1:'#ffffff',c2:'#ffffff',lat:53.2893,lng:-6.6939},{n:"Clogherinkoe",c1:'#f5e000',c2:'#1a1a1a',lat:53.3901,lng:-6.9967},{n:"Coill Dubh",c1:'#cc2222',c2:'#ffffff',lat:53.2945,lng:-6.8214},{n:"Eadestown",c1:'#5ec6f0',c2:'#1a2a5e',lat:53.1984,lng:-6.5855},{n:"Ellistown",c1:'#1a5dad',c2:'#f5e000',lat:53.1848,lng:-6.9848},{n:"Johnstownbridge",c1:'#1a5dad',c2:'#ffffff',lat:53.3929,lng:-6.8457},{n:"Kilcock",c1:'#1a7a3a',c2:'#f0c040',lat:53.3941,lng:-6.6675},{n:"Kilcullen",c1:'#1a1a1a',c2:'#ffffff',lat:53.1269,lng:-6.7548},{n:"Kildangan",c1:'#1a7a3a',c2:'#f5e000',lat:53.1003,lng:-7.0003},{n:"Kill",c1:'#1a7a3a',c2:'#f0c040',lat:53.2446,lng:-6.5984},{n:"Leixlip",c1:'#7a1f2b',c2:'#ffffff',lat:53.3644,lng:-6.5026},{n:"Maynooth",c1:'#1a1a1a',c2:'#ffffff',lat:53.3881,lng:-6.5999},{n:"Milltown",c1:'#1a7a3a',c2:'#cc2222',lat:53.2046,lng:-6.8557},{n:"Monasterevan",c1:'#1a5dad',c2:'#ffffff',lat:53.14,lng:-7.0545},{n:"Moorefield",c1:'#1a7a3a',c2:'#ffffff',lat:53.1725,lng:-6.8514},{n:"Naas",c1:'#1a5dad',c2:'#ffffff',lat:53.2296,lng:-6.6631},{n:"Nurney",c1:'#ffffff',c2:'#1a7a3a',lat:53.1042,lng:-6.9401},{n:"Raheens",c1:'#1a5dad',c2:'#f4c430',lat:53.2338,lng:-6.7193},{n:"Rathangan",c1:'#1a7a3a',c2:'#ffffff',lat:53.2268,lng:-6.989},{n:"Rathcoffey",c1:'#1a5dad',c2:'#ffffff',lat:53.3328,lng:-6.6911},{n:"Rheban",c1:'#1a5dad',c2:'#ffffff',lat:53.0266,lng:-6.9982},{n:"Robertstown",c1:'#1a5dad',c2:'#ffffff',lat:53.277,lng:-6.8205},{n:"Round Towers",c1:'#1a1a1a',c2:'#ffb300',lat:53.1609,lng:-6.9138},{n:"Sallins",c1:'#ffffff',c2:'#1a7a3a',lat:53.2506,lng:-6.6619},{n:"Sarsfields",c1:'#1a7a3a',c2:'#ffffff',lat:53.1882,lng:-6.8125},{n:"St. Kevin's",c1:'#cc2222',c2:'#1a1a1a',lat:53.331,lng:-6.761},{n:"St. Laurence's",c1:'#ffb300',c2:'#cc2222',lat:53.0422,lng:-6.8577},{n:"Straffan",c1:'#ffffff',c2:'#1a5dad',lat:53.3113,lng:-6.6066},{n:"Suncroft",c1:'#1a7a3a',c2:'#cc2222',lat:53.107,lng:-6.8576},{n:"\u00c9ire \u00d3g Corra Choill",c1:'#7a1f2b',c2:'#f5e000',lat:53.2548,lng:-6.7386}],
+"Leitrim":[{n:"Allen Gaels, Drumshanbo",c1:'#5ec6f0',c2:'#1a2a5e',lat:54.0448,lng:-8.0315},{n:"Annaduff",c1:'#1a1a1a',c2:'#ffb300',lat:53.8942,lng:-7.9513},{n:"Aughawillan",c1:'#1a5dad',c2:'#ffffff',lat:54.0915,lng:-7.7585},{n:"Cloone",c1:'#1a5dad',c2:'#f0c040',lat:53.9349,lng:-7.7872},{n:"Drumkeerin",c1:'#7a1f2b',c2:'#ffffff',lat:54.1664,lng:-8.135},{n:"Glencar Manorhamilton",c1:'#f4c430',c2:'#1a5dad',lat:54.3068,lng:-8.1739},{n:"Gortletteragh",c1:'#1a7a3a',c2:'#f0c040',lat:53.883,lng:-7.7813},{n:"Kiltubrid",c1:'#1a7a3a',c2:'#cc2222',lat:54.0343,lng:-7.9479},{n:"Mohill",c1:'#1a7a3a',c2:'#ffffff',lat:53.9185,lng:-7.8637},{n:"Sean O'Heslin's, Ballinamore",c1:'#f0c040',c2:'#1a7a3a',lat:54.0601,lng:-7.7933}],
+"Mayo":[{n:"Achill",c1:'#1a7a3a',c2:'#ffffff',lat:53.9331,lng:-9.9165},{n:"Aghamore",c1:'#ffffff',c2:'#cc2222',lat:53.8271,lng:-8.8199},{n:"Ardnaree Sarsfields",c1:'#1a7a3a',c2:'#f0c040',lat:54.1118,lng:-9.1422},{n:"Balla",c1:'#7a1f2b',c2:'#ffffff',lat:53.8031,lng:-9.1421},{n:"Ballaghaderreen",c1:'#ffffff',c2:'#1a7a3a',lat:53.8989,lng:-8.5958},{n:"Ballina Stephenites",c1:'#1a7a3a',c2:'#cc2222',lat:54.1112,lng:-9.1622},{n:"Ballinrobe",c1:'#7a1f2b',c2:'#f5e000',lat:53.6153,lng:-9.2116},{n:"Ballintubber",c1:'#cc2222',c2:'#ffffff',lat:53.7576,lng:-9.3077},{n:"Ballycroy",c1:'#1a7a3a',c2:'#ffffff',lat:54.0282,lng:-9.8263},{n:"Ballyhaunis",c1:'#cc2222',c2:'#1a1a1a',lat:53.7634,lng:-8.7921},{n:"Belmullet",c1:'#cc2222',c2:'#ffffff',lat:54.2487,lng:-9.9979},{n:"Bonniconlon",c1:'#5ec6f0',c2:'#1a2a5e',lat:54.1081,lng:-9.0242},{n:"Breaffy",c1:'#1a5dad',c2:'#ffffff',lat:53.8456,lng:-9.2338},{n:"Burrishoole",c1:'#ffffff',c2:'#1a7a3a',lat:53.8882,lng:-9.5406},{n:"Castlebar Mitchels",c1:'#cc2222',c2:'#f0c040',lat:53.853,lng:-9.2832},{n:"Castlebar Mitchels Hurling",c1:'#cc2222',c2:'#f0c040',lat:53.8536,lng:-9.2831},{n:"Charlestown Sarsfields",c1:'#1a7a3a',c2:'#ffffff',lat:53.9588,lng:-8.8054},{n:"Cill Chom\u00e1in",c1:'#ffffff',c2:'#1a1a1a',lat:54.2355,lng:-9.6537},{n:"Claremorris",c1:'#1a5dad',c2:'#ffffff',lat:53.7224,lng:-8.9946},{n:"Crossmolina Deel Rovers",c1:'#7a1f2b',c2:'#ffffff',lat:54.1048,lng:-9.3072},{n:"Davitts",c1:'#1a1a1a',c2:'#cc2222',lat:53.6724,lng:-8.9585},{n:"Eastern Gaels",c1:'#1a4fd6',c2:'#f5e000',lat:53.724,lng:-8.8764},{n:"Garrymore",c1:'#cc2222',c2:'#ffffff',lat:53.6469,lng:-9.0212},{n:"Hollymount/Carramore",c1:'#ffffff',c2:'#1a5dad',lat:53.6611,lng:-9.117},{n:"Islandeady",c1:'#1a7a3a',c2:'#ffffff',lat:53.8264,lng:-9.4044},{n:"Kilfian",c1:'#cc2222',c2:'#1a7a3a',lat:54.2002,lng:-9.3545},{n:"Kilmeena",c1:'#1a1a1a',c2:'#ffffff',lat:53.8411,lng:-9.5814},{n:"Kilmovee Shamrocks",c1:'#1a7a3a',c2:'#f0c040',lat:53.886,lng:-8.6785},{n:"Kiltane",c1:'#1a5dad',c2:'#f5e000',lat:54.1407,lng:-9.7394},{n:"Kiltimagh",c1:'#1a5dad',c2:'#ffffff',lat:53.8492,lng:-9.0104},{n:"Knockmore",c1:'#f4c430',c2:'#1a5dad',lat:54.0255,lng:-9.1762},{n:"Lahardane MacHales",c1:'#1a1a1a',c2:'#f0c040',lat:53.9849,lng:-9.3253},{n:"Louisburgh",c1:'#1a1a1a',c2:'#ffb300',lat:53.759,lng:-9.808},{n:"Mayo Gaels",c1:'#1a5dad',c2:'#f5e000',lat:53.7634,lng:-9.1182},{n:"Parke-Keelogues-Crimlin",c1:'#ffb300',c2:'#1a1a1a',lat:53.9106,lng:-9.1968},{n:"Shrule-Glencorrib",c1:'#7a1f2b',c2:'#1a7a3a',lat:53.5296,lng:-9.0802},{n:"Swinford",c1:'#1a1a1a',c2:'#cc2222',lat:53.9344,lng:-8.9519},{n:"Tooreen",c1:'#1a5dad',c2:'#ffffff',lat:53.8278,lng:-8.761}],
+"Meath":[{n:"Ballinabrackey",c1:'#1a7a3a',c2:'#f0c040',lat:53.3964,lng:-7.1085},{n:"Blackhall Gaels",c1:'#f5e000',c2:'#1a5dad',lat:53.4732,lng:-6.5453},{n:"Clann na nGael",c1:'#1a7a3a',c2:'#ffffff',lat:53.6269,lng:-6.9105},{n:"Donaghmore/Ashbourne",c1:'#1a7a3a',c2:'#ffffff',lat:53.5094,lng:-6.4105},{n:"Duleek-Bellewstown",c1:'#1a7a3a',c2:'#f5e000',lat:53.6545,lng:-6.4337},{n:"Dunshaughlin",c1:'#1a1a1a',c2:'#f5e000',lat:53.5148,lng:-6.5525},{n:"Gaeil Colmcille",c1:'#ffffff',c2:'#cc2222',lat:53.7199,lng:-6.8802},{n:"Kilmessan",c1:'#1a5dad',c2:'#ffffff',lat:53.5664,lng:-6.6472},{n:"Kiltale",c1:'#7a1f2b',c2:'#1a7a3a',lat:53.5228,lng:-6.6615},{n:"Meath Hill",c1:'#1a5dad',c2:'#ffffff',lat:53.8877,lng:-6.7138},{n:"Moynalvey",c1:'#7a1f2b',c2:'#ffffff',lat:53.4693,lng:-6.6646},{n:"Na Fianna, Enfield",c1:'#f5e000',c2:'#1a5dad',lat:53.411,lng:-6.8221},{n:"Nobber",c1:'#1a1a1a',c2:'#ffb300',lat:53.8192,lng:-6.7457},{n:"Rathkenny",c1:'#1a1a1a',c2:'#cc2222',lat:53.7421,lng:-6.6162},{n:"Ratoath",c1:'#1a5dad',c2:'#f5e000',lat:53.5104,lng:-6.4783},{n:"Seneschalstown",c1:'#1a5dad',c2:'#f5e000',lat:53.684,lng:-6.5881},{n:"Simonstown Gaels",c1:'#1a5dad',c2:'#1a5dad',lat:53.6725,lng:-6.6824},{n:"Skryne",c1:'#1a5dad',c2:'#ffffff',lat:53.5834,lng:-6.5478},{n:"St. Colmcille's",c1:'#1a2a5e',c2:'#1a5dad',lat:53.6961,lng:-6.2799},{n:"St. Patrick's, Stamullen",c1:'#ffffff',c2:'#1a7a3a',lat:53.6333,lng:-6.2629},{n:"St. Peter's, Dunboyne",c1:'#f5e000',c2:'#1a1a1a',lat:53.4105,lng:-6.4744},{n:"Summerhill",c1:'#1a5dad',c2:'#f0c040',lat:53.4835,lng:-6.7389},{n:"Trim",c1:'#cc2222',c2:'#ffffff',lat:53.5533,lng:-6.8039},{n:"Walterstown",c1:'#1a1a1a',c2:'#1a1a1a',lat:53.6244,lng:-6.6091},{n:"Wolfe Tones",c1:'#f5e000',c2:'#6a3aa0',lat:53.6997,lng:-6.6822}],
+"Roscommon":[{n:"Boyle",c1:'#7a1f2b',c2:'#ffffff',lat:53.9749,lng:-8.2974},{n:"Clann na nGael, Johnstown",c1:'#1a5dad',c2:'#f5e000',lat:53.3687,lng:-8.0214},{n:"Elphin",c1:'#ff8c00',c2:'#1a1a1a',lat:53.8479,lng:-8.1922},{n:"Four Roads",c1:'#1a1a1a',c2:'#ffb300',lat:53.5103,lng:-8.2238},{n:"Oran",c1:'#1a7a3a',c2:'#f5e000',lat:53.6594,lng:-8.2768},{n:"Padraig Pearses",c1:'#cc2222',c2:'#ffffff',lat:53.3368,lng:-8.1528},{n:"St. Brigid's, Kiltoom",c1:'#1a7a3a',c2:'#cc2222',lat:53.4854,lng:-8.0266},{n:"St. Dominics, Knockcroghery",c1:'#1a5dad',c2:'#ffffff',lat:53.5722,lng:-8.0764},{n:"St. Faithleachs",c1:'#cc2222',c2:'#ffffff',lat:53.6762,lng:-8.01},{n:"St. Kevin's, Castlerea",c1:'#1a7a3a',c2:'#7a1f2b',lat:53.7704,lng:-8.4871},{n:"St. Michael's",c1:'#1a7a3a',c2:'#cc2222',lat:53.9928,lng:-8.1732},{n:"Strokestown",c1:'#1a1a1a',c2:'#ffb300',lat:53.7785,lng:-8.1125},{n:"Tremane Hurling Club",c1:'#1a5dad',c2:'#f0c040',lat:53.5783,lng:-8.2043}],
+"Sligo":[{n:"Ballisodare",c1:'#cc2222',c2:'#ffffff',lat:54.2134,lng:-8.5214},{n:"Ballymote",c1:'#cc2222',c2:'#ffffff',lat:54.0955,lng:-8.5195},{n:"Bunninadden",c1:'#1a7a3a',c2:'#ffffff',lat:54.039,lng:-8.5742},{n:"Castleconnor",c1:'#cc2222',c2:'#ffffff',lat:54.1661,lng:-9.0776},{n:"Cloonacool",c1:'#1a5dad',c2:'#f5e000',lat:54.1154,lng:-8.7578},{n:"Coolaney/Mullinabreena",c1:'#1a5dad',c2:'#ffffff',lat:54.0954,lng:-8.6604},{n:"Coolera/Strandhill",c1:'#cc2222',c2:'#ffffff',lat:54.2447,lng:-8.5423},{n:"Curry",c1:'#1a7a3a',c2:'#ffffff',lat:54.0054,lng:-8.7848},{n:"Drumcliffe/Rosses Point",c1:'#cc2222',c2:'#1a1a1a',lat:54.3399,lng:-8.5194},{n:"Easkey",c1:'#1a5dad',c2:'#f5e000',lat:54.2899,lng:-8.9789},{n:"Eastern Harps",c1:'#1a7a3a',c2:'#ffffff',lat:54.044,lng:-8.4466},{n:"Enniscrone/Kilglass",c1:'#f5e000',c2:'#1a1a1a',lat:54.2388,lng:-9.055},{n:"Geevagh",c1:'#1a5dad',c2:'#ffffff',lat:54.1007,lng:-8.2415},{n:"Naomh Eoin Hurling, Sligo",c1:'#1a1a1a',c2:'#cc2222',lat:54.2651,lng:-8.5006},{n:"Owenmore Gaels",c1:'#f0c040',c2:'#1a5dad',lat:54.1778,lng:-8.4897},{n:"Shamrock Gaels",c1:'#7a1f2b',c2:'#ffffff',lat:54.157,lng:-8.3721},{n:"St. Farnan's",c1:'#1a5dad',c2:'#ffffff',lat:54.2431,lng:-8.8169},{n:"St. John's, Carraroe",c1:'#5ec6f0',c2:'#1a2a5e',lat:54.238,lng:-8.4638},{n:"St. Joseph's, Calry",c1:'#1a5dad',c2:'#f5e000',lat:54.269,lng:-8.4172},{n:"St. Mary's, Sligo",c1:'#cc2222',c2:'#1a1a1a',lat:54.265,lng:-8.5008},{n:"St. Michael's",c1:'#1a7a3a',c2:'#ffffff',lat:54.1997,lng:-8.3624},{n:"St. Molaise Gaels",c1:'#1a7a3a',c2:'#ffffff',lat:54.3956,lng:-8.5188},{n:"St. Patrick's, Skreen/Dromard",c1:'#1a7a3a',c2:'#cc2222',lat:54.2406,lng:-8.6796},{n:"Tourlestrane",c1:'#1a7a3a',c2:'#f0c040',lat:54.0384,lng:-8.8341},{n:"Tubbercurry",c1:'#1a1a1a',c2:'#ffffff',lat:54.0594,lng:-8.723}],
+"Tipperary":[{n:"Ardfinnan",c1:'#7a1f2b',c2:'#ffffff',lat:52.3184,lng:-7.8645},{n:"Arravale Rovers",c1:'#1a1a1a',c2:'#ffb300',lat:52.469,lng:-8.1585},{n:"Borris-Ileigh",c1:'#7a1f2b',c2:'#ffffff',lat:52.7497,lng:-7.954},{n:"Borrisokane",c1:'#1a7a3a',c2:'#ffffff',lat:52.9961,lng:-8.1249},{n:"Burgess",c1:'#1a7a3a',c2:'#f0c040',lat:52.8568,lng:-8.2616},{n:"CJ Kickhams Mullinahone",c1:'#1a7a3a',c2:'#cc2222',lat:52.5149,lng:-7.5017},{n:"Cahir",c1:'#1a7a3a',c2:'#ffffff',lat:52.3724,lng:-7.9248},{n:"Cappawhite",c1:'#ffffff',c2:'#1a5dad',lat:52.5779,lng:-8.165},{n:"Carrick Davins",c1:'#cc2222',c2:'#ffffff',lat:52.3489,lng:-7.4198},{n:"Clonmel Commercials",c1:'#1a7a3a',c2:'#f0c040',lat:52.3533,lng:-7.7131},{n:"Clonoulty-Rossmore",c1:'#1a7a3a',c2:'#f0c040',lat:52.6121,lng:-7.9561},{n:"Drom/Inch",c1:'#1a7a3a',c2:'#ffffff',lat:52.7189,lng:-7.9143},{n:"Fethard",c1:'#1a5dad',c2:'#ffffff',lat:52.4682,lng:-7.6956},{n:"Galtee Rovers",c1:'#cc2222',c2:'#ffffff',lat:52.4469,lng:-8.0671},{n:"Grangemockler / Ballyneale",c1:'#1a7a3a',c2:'#ffffff',lat:52.4445,lng:-7.4778},{n:"Holycross/Ballycahill",c1:'#1a7a3a',c2:'#ffffff',lat:52.6486,lng:-7.8765},{n:"JK Brackens",c1:'#1a1a1a',c2:'#ffffff',lat:52.7988,lng:-7.8369},{n:"Killenaule",c1:'#cc2222',c2:'#f5e000',lat:52.5638,lng:-7.6694},{n:"Kilruane MacDonaghs",c1:'#ffffff',c2:'#1a1a1a',lat:52.9412,lng:-8.0428},{n:"Moneygall",c1:'#1a1a1a',c2:'#cc2222',lat:52.8827,lng:-7.9478},{n:"Nenagh \u00c9ire \u00d3g",c1:'#5ec6f0',c2:'#1a2a5e',lat:52.8668,lng:-8.2152},{n:"Newport",c1:'#6a3aa0',c2:'#f0c040',lat:52.7078,lng:-8.3955},{n:"Roscrea",c1:'#cc2222',c2:'#ffffff',lat:52.9672,lng:-7.7873},{n:"Shannon Rovers",c1:'#cc2222',c2:'#ffffff',lat:53.015,lng:-8.2175},{n:"Silvermines",c1:'#1a5dad',c2:'#ffffff',lat:52.8011,lng:-8.1884},{n:"Skeheenarinky",c1:'#6b7280',c2:'#1a5dad',lat:52.2723,lng:-8.0971},{n:"Swan Club, Carrick on Suir",c1:'#1a1a1a',c2:'#ffffff',lat:52.3489,lng:-7.4198},{n:"Templederry Kenyons",c1:'#1a7a3a',c2:'#ffffff',lat:52.7762,lng:-8.0738},{n:"Thurles Sarsfields",c1:'#1a5dad',c2:'#ffffff',lat:52.6823,lng:-7.8234},{n:"Toomevara",c1:'#1a7a3a',c2:'#f0c040',lat:52.8502,lng:-8.0414}],
+"Wexford":[{n:"Buffers Alley",c1:'#1a7a3a',c2:'#f0c040',lat:52.5635,lng:-6.3273},{n:"Castletown Liam Mellows",c1:'#7a1f2b',c2:'#ffffff',lat:52.7629,lng:-6.2329},{n:"Cloughbawn",c1:'#1a7a3a',c2:'#ffffff',lat:52.4676,lng:-6.7319},{n:"Duffry Rovers",c1:'#1a7a3a',c2:'#f0c040',lat:52.5521,lng:-6.7009},{n:"Faythe Harriers",c1:'#6a3aa0',c2:'#f0c040',lat:52.3511,lng:-6.4846},{n:"Geraldine O'Hanrahans",c1:'#1a5dad',c2:'#f0c040',lat:52.4041,lng:-6.9339},{n:"Glynn-Barntown",c1:'#1a5dad',c2:'#1a7a3a',lat:52.3741,lng:-6.5699},{n:"Horeswood",c1:'#cc2222',c2:'#f5e000',lat:52.3115,lng:-6.9576},{n:"Kilanerin-Ballyfad",c1:'#ffffff',c2:'#cc2222',lat:52.7353,lng:-6.284},{n:"Naomh Eanna",c1:'#1a7a3a',c2:'#f5e000',lat:52.6818,lng:-6.2744},{n:"Oulart The Ballagh",c1:'#1a1a1a',c2:'#cc2222',lat:52.5045,lng:-6.3884},{n:"Oylegate-Glenbrien",c1:'#1a5dad',c2:'#ffffff',lat:52.417,lng:-6.5042},{n:"Rapparees-Starlights, Enniscorthy",c1:'#cc2222',c2:'#f5e000',lat:52.5033,lng:-6.5767},{n:"Shelmaliers",c1:'#1a1a1a',c2:'#ffb300',lat:52.387,lng:-6.4273},{n:"St. Aidan's, Ferns",c1:'#cc2222',c2:'#ffffff',lat:52.5928,lng:-6.5128},{n:"St. Anne's, Rathangan",c1:'#1a5dad',c2:'#1a2a5e',lat:52.2345,lng:-6.615},{n:"St. Anne's, Rathnure",c1:'#1a1a1a',c2:'#ffb300',lat:52.4973,lng:-6.7661},{n:"St. Martin's",c1:'#7a1f2b',c2:'#ffffff',lat:52.2896,lng:-6.4911},{n:"St. Mary's, Rosslare",c1:'#1a5dad',c2:'#f5e000',lat:52.2437,lng:-6.3986}],
+"Wicklow":[{n:"An T\u00f3char",c1:'#1a7a3a',c2:'#ffffff',lat:53.0645,lng:-6.2044},{n:"Annacurra",c1:'#1a7a3a',c2:'#f0c040',lat:52.8441,lng:-6.3533},{n:"Arklow Geraldines Ballymoney",c1:'#1a5dad',c2:'#ffffff',lat:52.8123,lng:-6.1415},{n:"Arklow Rock Parnells",c1:'#1a1a1a',c2:'#ffb300',lat:52.7798,lng:-6.1553},{n:"Ashford",c1:'#1a7a3a',c2:'#ffffff',lat:53.0118,lng:-6.1042},{n:"Aughrim",c1:'#1a5dad',c2:'#f5e000',lat:52.8524,lng:-6.3361},{n:"Avoca",c1:'#1a5dad',c2:'#ffffff',lat:52.8601,lng:-6.2162},{n:"Avondale",c1:'#1a7a3a',c2:'#ffffff',lat:52.8872,lng:-6.2255},{n:"Ballinacor",c1:'#f0c040',c2:'#1a7a3a',lat:52.8981,lng:-6.3214},{n:"Ballymanus",c1:'#1a7a3a',c2:'#ffffff',lat:52.8425,lng:-6.4412},{n:"Baltinglass",c1:'#1a7a3a',c2:'#ffffff',lat:52.9423,lng:-6.7032},{n:"Barndarrig",c1:'#cc2222',c2:'#ffffff',lat:52.9231,lng:-6.1024},{n:"Blessington",c1:'#1a5dad',c2:'#ffffff',lat:53.1601,lng:-6.5312},{n:"Bray Emmets",c1:'#1a7a3a',c2:'#1a2a5e',lat:53.1932,lng:-6.1264},{n:"Carnew Emmets",c1:'#1a5dad',c2:'#f0c040',lat:52.7115,lng:-6.5023},{n:"Cill Bhr\u00edde (Kilbride)",c1:'#1a7a3a',c2:'#cc2222',lat:53.2014,lng:-6.4411},{n:"Coolkenno",c1:'#cc2222',c2:'#1a1a1a',lat:52.7612,lng:-6.5514},{n:"Donard The Glen",c1:'#cc2222',c2:'#ffffff',lat:53.0232,lng:-6.6115},{n:"Dunlavin",c1:'#1a7a3a',c2:'#ffffff',lat:53.0561,lng:-6.7042},{n:"Enniskerry",c1:'#1a7a3a',c2:'#f0c040',lat:53.1914,lng:-6.1685},{n:"Fergal Og",c1:'#1a1a1a',c2:'#ffb300',lat:53.1551,lng:-6.0642},{n:"Glenealy",c1:'#cc2222',c2:'#ffffff',lat:52.9642,lng:-6.1432},{n:"Hollywood",c1:'#1a5dad',c2:'#ffffff',lat:53.0931,lng:-6.5972},{n:"Kilcoole",c1:'#1a5dad',c2:'#f0c040',lat:53.1023,lng:-6.0645},{n:"Kilmacanogue",c1:'#1a5dad',c2:'#ffffff',lat:53.1672,lng:-6.1345},{n:"Kiltegan",c1:'#cc2222',c2:'#ffffff',lat:52.9034,lng:-6.6042},{n:"Knockananna",c1:'#cc2222',c2:'#ffffff',lat:52.8312,lng:-6.4715},{n:"Laragh",c1:'#1a5dad',c2:'#ffffff',lat:53.0072,lng:-6.3012},{n:"Newcastle",c1:'#1a1a1a',c2:'#ffffff',lat:53.0641,lng:-6.0712},{n:"Newtown",c1:'#1a7a3a',c2:'#f0c040',lat:53.0821,lng:-6.1154},{n:"Rathnew",c1:'#1a7a3a',c2:'#cc2222',lat:52.9912,lng:-6.0694},{n:"Shillelagh-Coolboy",c1:'#1a7a3a',c2:'#ffffff',lat:52.7561,lng:-6.4385},{n:"St Patricks Wicklow Town",c1:'#1a5dad',c2:'#ffffff',lat:52.9734,lng:-6.0412},{n:"Stratford / Grangecon",c1:'#1a7a3a',c2:'#1a1a1a',lat:52.9972,lng:-6.6892},{n:"Tinahely",c1:'#cc2222',c2:'#ffffff',lat:52.8015,lng:-6.4672},{n:"Valleymount",c1:'#1a7a3a',c2:'#ffffff',lat:53.1065,lng:-6.5312},{n:"Western Gaels",c1:'#f5e000',c2:'#1a5dad',lat:53.1312,lng:-6.5512},{n:"\u00c9ire \u00d3g Greystones",c1:'#cc2222',c2:'#ffffff',lat:53.1415,lng:-6.0772}]
+};
+const ALL_COUNTIES=["Antrim", "Armagh", "Carlow", "Cavan", "Clare", "Cork", "Derry", "Donegal", "Down", "Dublin", "Fermanagh", "Galway", "Kerry", "Kildare", "Kilkenny", "Laois", "Leitrim", "Limerick", "Longford", "Louth", "Mayo", "Meath", "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary", "Tyrone", "Waterford", "Westmeath", "Wexford", "Wicklow"];
+const ACTIVE_COUNTIES=["Dublin", "Galway", "Kerry", "Kildare", "Leitrim", "Mayo", "Meath", "Roscommon", "Sligo", "Tipperary", "Wexford", "Wicklow"];
+
+const OPP_TEAMS = [{id:"car",name:"Carnew",c1:"#c4342d",c2:"#fff"},{id:"rat",name:"Rathnew",c1:"#1a3d7c",c2:"#f0c040"},{id:"ato",name:"An Tochar",c1:"#006633",c2:"#fff"},{id:"eog",name:"Eire Og",c1:"#006633",c2:"#cc0000"},{id:"avo",name:"Avondale",c1:"#0055a4",c2:"#fff"},{id:"dun",name:"Dunlavin",c1:"#006633",c2:"#fff"},{id:"agb",name:"AGB",c1:"#cc0000",c2:"#000"},{id:"hol",name:"Hollywood",c1:"#cc0000",c2:"#fff"},{id:"bar",name:"Barndarrig",c1:"#006633",c2:"#f0c040"},{id:"shi",name:"Shillelagh",c1:"#006633",c2:"#fff"},{id:"coo",name:"Coolkenno",c1:"#006633",c2:"#fff"},{id:"ble",name:"Blessington",c1:"#0055a4",c2:"#fff"}];
+const GROUNDS=[{n:"An Tóchar",lat:53.0645,lng:-6.2044},{n:"Annacurra",lat:52.8441,lng:-6.3533},{n:"Arklow Geraldines Ballymoney",lat:52.8123,lng:-6.1415},{n:"Arklow Rock Parnells",lat:52.7798,lng:-6.1553},{n:"Ashford",lat:53.0118,lng:-6.1042},{n:"Aughrim",lat:52.8524,lng:-6.3361},{n:"Avoca",lat:52.8601,lng:-6.2162},{n:"Avondale",lat:52.8872,lng:-6.2255},{n:"Ballinacor",lat:52.8981,lng:-6.3214},{n:"Ballymanus",lat:52.8425,lng:-6.4412},{n:"Baltinglass",lat:52.9423,lng:-6.7032},{n:"Barndarrig",lat:52.9231,lng:-6.1024},{n:"Blessington",lat:53.1601,lng:-6.5312},{n:"Bray Emmets",lat:53.1932,lng:-6.1264},{n:"Carnew Emmets",lat:52.7115,lng:-6.5023},{n:"Cill Bhríde (Kilbride)",lat:53.2014,lng:-6.4411},{n:"Coolkenno",lat:52.7612,lng:-6.5514},{n:"Donard The Glen",lat:53.0232,lng:-6.6115},{n:"Dunlavin",lat:53.0561,lng:-6.7042},{n:"Éire Óg Greystones",lat:53.1415,lng:-6.0772},{n:"Enniskerry",lat:53.1914,lng:-6.1685},{n:"Fergal Og",lat:53.1551,lng:-6.0642},{n:"Glenealy",lat:52.9642,lng:-6.1432},{n:"Hollywood",lat:53.0931,lng:-6.5972},{n:"Kilcoole",lat:53.1023,lng:-6.0645},{n:"Kilmacanogue",lat:53.1672,lng:-6.1345},{n:"Kiltegan",lat:52.9034,lng:-6.6042},{n:"Knockananna",lat:52.8312,lng:-6.4715},{n:"Laragh",lat:53.0072,lng:-6.3012},{n:"Newcastle",lat:53.0641,lng:-6.0712},{n:"Newtown",lat:53.0821,lng:-6.1154},{n:"Rathnew",lat:52.9912,lng:-6.0694},{n:"Shillelagh-Coolboy",lat:52.7561,lng:-6.4385},{n:"St Patricks Wicklow Town",lat:52.9734,lng:-6.0412},{n:"Stratford / Grangecon",lat:52.9972,lng:-6.6892},{n:"Tinahely",lat:52.8015,lng:-6.4672},{n:"Valleymount",lat:53.1065,lng:-6.5312},{n:"Western Gaels",lat:53.1312,lng:-6.5512}];
+const BRAY={lat:53.1932,lng:-6.1264};
+const distKm=(a,b)=>{const R=6371,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180;const h=Math.sin(dLa/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLo/2)**2;return Math.round(2*R*Math.asin(Math.sqrt(h)))};
+const VENUES = GROUNDS.map((g,i)=>({id:`g${i}`,name:g.n,club:g.n,lat:g.lat,lng:g.lng,dist:distKm(BRAY,g)})).sort((a,b)=>a.dist-b.dist);
+const REFEREES = [{id:"r1",name:"John Murphy",county:"Wicklow"},{id:"r2",name:"Michael Byrne",county:"Wicklow"},{id:"r3",name:"Seamus O'Brien",county:"Wexford"}];
+const WEATHER = [{id:"dry",l:"Dry",i:"☀"},{id:"dry_windy",l:"Dry & Windy",i:"💨"},{id:"light_rain",l:"Light Rain",i:"🌦"},{id:"heavy_rain",l:"Heavy Rain",i:"🌧"},{id:"rain_wind",l:"Rain & Wind",i:"⛈"},{id:"other",l:"Other",i:"—"}];
+const SPORTS = [{id:"gaa_football",l:"GAA Football",i:"🏐"},{id:"hurling",l:"Hurling",i:"🏑"},{id:"camogie",l:"Camogie",i:"🏑"},{id:"ladies_football",l:"Ladies Football",i:"🏐"}];
+const LEVELS = ["Senior","Junior A","Junior B","Junior C","U21","U20","Minor"];
+const PRESETS = ["#006633","#00a651","#34c967","#003366","#0055a4","#4a9eff","#cc0000","#e04545","#ff6b6b","#f0c040","#ff8c00","#e67e22","#fff","#ccc","#333","#800080","#4b0082","#800000"];
+const POSITIONS = ["Goalkeeper","Right Corner Back","Full Back","Left Corner Back","Right Half Back","Centre Back","Left Half Back","Midfield","Midfield","Right Half Forward","Centre Forward","Left Half Forward","Right Corner Forward","Full Forward","Left Corner Forward"];
+const POS_MATCH={"Goalkeeper":["GK"],"Right Corner Back":["FB","CB"],"Full Back":["FB","CB"],"Left Corner Back":["FB","CB"],"Right Half Back":["HB","WB","CB"],"Centre Back":["CB","HB"],"Left Half Back":["HB","WB","CB"],"Midfield":["MF"],"Right Half Forward":["HF","WF","CF"],"Centre Forward":["CF","HF","FF"],"Left Half Forward":["HF","WF","CF"],"Right Corner Forward":["FF","WF","CF"],"Full Forward":["FF","CF"],"Left Corner Forward":["FF","WF","CF"]};
+const posMatch=(slotPos,playerPos)=>(POS_MATCH[slotPos]||[]).some(c=>playerPos.includes(c));
+const POS_SHORT = ["GK","RCB","FB","LCB","RHB","CB","LHB","MF","MF","RHF","CF","LHF","RCF","FF","LCF"];
+let PANEL = [{id:"p6",n:"Arran Murphy",num:6,pos:["CB","CF"]},{id:"p17",n:"Brian Nesbitt",num:17,pos:["WF","FF"]},{id:"p11",n:"Cathal Magee",num:11,pos:["CF","WF"]},{id:"p2",n:"Conal Butler",num:2,pos:["FB","HB"]},{id:"p7",n:"Conor Broderick",num:7,pos:["HB","HF"]},{id:"p13",n:"Daire Lohan",num:13,pos:["MF","WB"]},{id:"p12",n:"Daragh Rochford",num:12,pos:["HF","MF"]},{id:"p18",n:"David Martin",num:18,pos:["FF","WF"]},{id:"p9",n:"Des Kelly",num:9,pos:["HF","MF"]},{id:"p19",n:"Eanna Hayes",num:19,pos:["FF","WF"]},{id:"p20",n:"Gavin Dowling",num:20,pos:["FF"]},{id:"p21",n:"Luke Cotter",num:21,pos:["WB","WF"]},{id:"p22",n:"Nathan Prunty",num:22,pos:["WF","MF"]},{id:"p4",n:"Oscar Harty",num:4,pos:["FB","HB"]},{id:"p14",n:"Padraig Doyle",num:14,pos:["FF"]},{id:"p8",n:"Rory Breslin",num:8,pos:["MF"]},{id:"p23",n:"Ross Hayde",num:23,pos:["WF","WB"]},{id:"p10",n:"Ryan Harrison",num:10,pos:["WF","FF"]},{id:"p3",n:"Sam Kearney",num:3,pos:["FB"]},{id:"p15",n:"Sean Kenny",num:15,pos:["FF","WF"]},{id:"p1",n:"Stephen Carton",num:1,pos:["GK"]},{id:"p24",n:"Tim Harrington",num:24,pos:["WB","WF"]}];
+const SQUAD_NAMES={6:"A. Murphy",17:"B. Nesbitt",11:"C. Magee",2:"C. Butler",7:"C. Broderick",13:"D. Lohan",12:"D. Rochford",18:"D. Martin",9:"D. Kelly",19:"E. Hayes",20:"G. Dowling",21:"L. Cotter",22:"N. Prunty",4:"O. Harty",14:"P. Doyle",8:"R. Breslin",23:"R. Hayde",10:"R. Harrison",3:"S. Kearney",15:"S. Kenny",1:"S. Carton",24:"T. Harrington"};
+
+const EVENTS = [
+  {id:"kickout",l:"Kickout",pitch:true,outcomes:["Won Clean","Break Won","Break Lost","Lost Clean"],col:C.blue},
+  {id:"shot",l:"Shot",pitch:true,outcomes:["Point","2-Pointer","Goal","Wide","Blocked","Dropped Short","Saved"],col:C.greenB},
+  {id:"free",l:"Free",pitch:true,outcomes:["Point","2-Pointer","Goal","Wide","Dropped Short","Saved"],col:C.gold},
+  {id:"poss_lost",l:"Turnover",pitch:false,outcomes:["In Contact","Kick Pass","Hand Pass","Handling","Intercepted","Foul"],col:C.red},
+  {id:"tackle",l:"Tackle",pitch:false,outcomes:["Contact Made","Block","Foul"],col:C.slate},
+  {id:"booking",l:"Card",pitch:false,outcomes:["Yellow","Black","Red"],col:"#ff6b6b"},
+  {id:"sub",l:"Sub",pitch:false,outcomes:[],col:C.slate},
+];
+
+const MOCK_RESULTS = [
+  {opp:"Baltinglass",c1:"#cc2222",hg:1,hp:13,hfg:0,hfp:3,ag:0,ap:18,afg:0,afp:8,date:"15 May 26",comp:"LGE",r:"L"},
+  {opp:"Eire Og",c1:"#006633",hg:0,hp:11,hfg:0,hfp:2,ag:0,ap:15,afg:0,afp:5,date:"1 May 26",comp:"LGE",r:"L"},
+  {opp:"Blessington",c1:"#0055a4",hg:0,hp:11,hfg:0,hfp:5,ag:1,ap:7,afg:0,afp:1,date:"27 Apr 26",comp:"LGE",r:"W"},
+  {opp:"Rathnew",c1:"#1a3d7c",hg:1,hp:25,hfg:0,hfp:7,ag:1,ap:4,afg:0,afp:2,date:"23 Apr 26",comp:"LGE",r:"W"},
+  {opp:"Carnew",c1:"#c4342d",hg:3,hp:21,hfg:1,hfp:3,ag:1,ap:6,afg:0,afp:2,date:"10 Mar 26",comp:"LGE",r:"W"},
+];
+
+const CLUB_BENCH=[{n:"Hollywood",pts:23.6,conv:52,ko:61,tk:40.1,to:23.0,real:false},{n:"Bray Emmets",pts:19.9,conv:53,ko:66,tk:39.4,to:22.0,real:true},{n:"Baltinglass",pts:19.3,conv:49,ko:57,tk:41.1,to:22.2,real:false},{n:"Shillelagh",pts:14.9,conv:48,ko:57,tk:43.9,to:24.0,real:false},{n:"Blessington",pts:14.8,conv:47,ko:56,tk:44.2,to:22.9,real:false},{n:"Carnew",pts:13.9,conv:47,ko:55,tk:40.9,to:23.0,real:false},{n:"An Tochar",pts:13.8,conv:47,ko:56,tk:38.8,to:21.3,real:false},{n:"Eire Og",pts:13.8,conv:47,ko:58,tk:41.9,to:24.0,real:false},{n:"Dunlavin",pts:12.6,conv:48,ko:56,tk:42.0,to:22.7,real:false},{n:"Coolkenno",pts:12.2,conv:45,ko:53,tk:42.9,to:23.9,real:false},{n:"Avondale",pts:11.1,conv:45,ko:57,tk:42.8,to:24.9,real:false},{n:"Rathnew",pts:10.8,conv:45,ko:53,tk:40.7,to:25.2,real:false}];
+const WICKLOW_AVG={pts:15.1,conv:48,ko:57,tk:41.6,to:23.3};
+const POS_BENCH=[{pos:"Full-Forward Line",pts:6.02,shot:64,tk:3.88,to:5.25},{pos:"Half-Forward Line",pts:4.52,shot:55,tk:6.05,to:4.94},{pos:"Midfield",pts:2.38,shot:56,tk:6.74,to:3.48},{pos:"Half-Back Line",pts:1.0,shot:26,tk:12.55,to:4.74},{pos:"Full-Back Line",pts:1.0,shot:26,tk:11.64,to:4.35},{pos:"Goalkeeper",pts:0.0,shot:0,tk:0.9,to:0.61,ko:56,sv:1.99}];
+const BRAY_POS_BENCH=[{pos:"Half-Forward Line",pts:5.37,shot:51,tk:3.21,to:3.16},{pos:"Midfield",pts:1.89,shot:50,tk:4.47,to:2.05},{pos:"Half-Back Line",pts:3.32,shot:53,tk:11.79,to:6.47},{pos:"Full-Back Line",pts:2.16,shot:56,tk:7.26,to:3.58},{pos:"Full-Forward Line",pts:5.37,shot:59,tk:5.47,to:3.0}];
+const HOME_C1 = "#006633", HOME_C2 = "#fff";
+
+// ── SHARED COMPONENTS ──
+function LogoIcon({size=36}){return <svg viewBox="0 0 40 40" width={size} height={size}><rect width="40" height="40" rx="8" fill="#0B1C35"/><rect x="10" y="8" width="1.5" height="20" fill="#e8e8e8"/><rect x="28.5" y="8" width="1.5" height="20" fill="#e8e8e8"/><rect x="10" y="18" width="20" height="1.5" fill="#e8e8e8"/><rect x="12" y="9" width="16" height="9" fill="#2a3a6a" rx="1"/><polyline points="12,26 16,25 20,24 24,22 28,19" fill="none" stroke="#fff" strokeWidth="1.2" strokeLinecap="round"/>{[[12,26],[16,25],[20,24],[24,22],[28,19]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="1.5" fill="#34c967" stroke="#fff" strokeWidth="0.4"/>)}<rect x="6" y="29" width="28" height="5" fill="#1a7a3a" rx="1"/><rect x="6" y="28" width="28" height="1.5" fill="#c47a32" rx="0.5"/></svg>}
+
+function FullLogo({size=48}){return <svg viewBox="0 0 320 176" width={size*2.8} height={size*1.5} style={{display:"block",margin:"0 auto"}}><rect x="0" y="0" width="320" height="176" rx="8" fill="#0B1C35"/><defs><linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a2a52"/><stop offset="100%" stopColor="#3a4a7a"/></linearGradient></defs><rect x="95" y="30" width="130" height="95" fill="url(#st)"/><rect x="70" y="125" width="180" height="3" fill="#c47a32" rx="1"/><rect x="60" y="128" width="200" height="18" fill="#1a7a3a"/><rect x="98" y="42" width="3" height="88" fill="#e8e8e8"/><rect x="219" y="42" width="3" height="88" fill="#e8e8e8"/><rect x="98" y="85" width="124" height="2.5" fill="#e8e8e8"/><rect x="96" y="38" width="7" height="6" rx="1" fill="#d0d0d0"/><rect x="217" y="38" width="7" height="6" rx="1" fill="#d0d0d0"/><text x="160" y="68" fill="#fff" fontSize="22" fontFamily="Georgia,serif" fontWeight="900" textAnchor="middle" letterSpacing="3">ROCK</text><text x="160" y="83" fill="#fff" fontSize="10" fontFamily="Georgia,serif" fontWeight="900" textAnchor="middle" letterSpacing="5">SOLID</text><text x="160" y="99" fill="#34c967" fontSize="11" fontFamily="Georgia,serif" fontWeight="700" textAnchor="middle" letterSpacing="4">ANALYTICS</text><polyline points="105,122 120,120 135,119 150,117 165,118 180,114 195,110 210,105" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>{[[105,122],[120,120],[135,119],[150,117],[165,118],[180,114],[195,110],[210,105]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="3" fill="#34c967" stroke="#fff" strokeWidth="0.8"/>)}</svg>}
+
+function MJ({col1,col2,size=24,num}){return <svg viewBox="0 0 30 34" width={size} height={size*34/30} style={{display:"block",flexShrink:0}}><path d="M6,10 L2,14 L2,19 L6,18 L6,32 L24,32 L24,18 L28,19 L28,14 L24,10 L20,13 L15,11 L10,13 Z" fill={col1} stroke={col2} strokeWidth="1.5"/><rect x="6" y="19" width="18" height="4" fill={col2} opacity="0.6"/>{num&&<text x="15" y="28" fill={col2} fontSize="7" fontFamily="monospace" fontWeight="900" textAnchor="middle" opacity="0.7">{num}</text>}</svg>}
+
+function Btn({children,onClick,disabled,variant="primary",style={}}){
+  const v={primary:{background:"linear-gradient(90deg,#1e5c38,#152d52)",border:`1px solid ${C.greenB}`,color:C.white},secondary:{background:"transparent",border:`1px solid ${C.borderB}`,color:C.slate},google:{background:"#fff",border:"1px solid #ddd",color:"#333"}};
+  return <button onClick={onClick} disabled={disabled} style={{width:"100%",padding:"14px",borderRadius:10,fontSize:13,fontWeight:700,cursor:disabled?"not-allowed":"pointer",fontFamily:"monospace",letterSpacing:1,border:"none",transition:"all 0.2s",opacity:disabled?0.45:1,...v[variant],...style}}>{children}</button>
+}
+function SL({children}){return <div style={{fontSize:10,fontFamily:"monospace",letterSpacing:2,color:C.slate,marginBottom:10,marginTop:20}}>{children}</div>}
+
+// ── LOGIN ──
+function LoginScreen({nav}){
+  const [mode,setMode]=useState("signin"); // signin | signup
+  return <div style={{minHeight:"100vh",background:`linear-gradient(160deg,${C.bg} 0%,#0d1f3c 50%,#0f3a25 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"Inter,-apple-system,system-ui,sans-serif",color:C.white}}>
+    <FullLogo size={48}/>
+    <div style={{height:32}}/>
+    <div style={{width:"100%",maxWidth:340}}>
+      <div style={{display:"flex",gap:4,marginBottom:20,background:C.bgDark,borderRadius:10,padding:4}}>
+        <button onClick={()=>setMode("signin")} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode==="signin"?`${C.green}22`:"transparent",color:mode==="signin"?C.greenB:C.slate,fontSize:12,fontWeight:700,fontFamily:"monospace",letterSpacing:1}}>SIGN IN</button>
+        <button onClick={()=>setMode("signup")} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode==="signup"?`${C.green}22`:"transparent",color:mode==="signup"?C.greenB:C.slate,fontSize:12,fontWeight:700,fontFamily:"monospace",letterSpacing:1}}>SIGN UP</button>
+      </div>
+      <Btn onClick={()=>nav(mode==="signin"?"home":"onboarding")} variant="google" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:12}}>
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        {mode==="signin"?"Sign in with Google":"Sign up with Google"}
+      </Btn>
+      <Btn onClick={()=>nav(mode==="signin"?"home":"onboarding")} variant="secondary" style={{marginBottom:12}}> {mode==="signin"?"Sign in with Apple":"Sign up with Apple"}</Btn>
+      <div style={{textAlign:"center",color:C.slate,fontSize:11,fontFamily:"monospace",margin:"16px 0"}}>OR</div>
+      <input placeholder="Email" style={{width:"100%",background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px",color:C.white,fontSize:13,boxSizing:"border-box",marginBottom:8,outline:"none",fontFamily:"Inter,-apple-system,system-ui,sans-serif"}}/>
+      <input placeholder="Password" type="password" style={{width:"100%",background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px",color:C.white,fontSize:13,boxSizing:"border-box",marginBottom:16,outline:"none",fontFamily:"Inter,-apple-system,system-ui,sans-serif"}}/>
+      {mode==="signin"
+        ?<Btn onClick={()=>nav("home")}>SIGN IN</Btn>
+        :<Btn onClick={()=>nav("onboarding")}>CREATE ACCOUNT →</Btn>}
+      <div style={{textAlign:"center",marginTop:16,fontSize:12,color:C.slate}}>
+        {mode==="signin"
+          ?<>No account? <span onClick={()=>setMode("signup")} style={{color:C.greenB,cursor:"pointer",fontWeight:700}}>Sign up</span></>
+          :<>Already have an account? <span onClick={()=>setMode("signin")} style={{color:C.greenB,cursor:"pointer",fontWeight:700}}>Sign in</span></>}
+      </div>
+    </div>
+  </div>
+}
+
+// ── ONBOARDING ──
+function OnboardingScreen({nav}){
+  const [step,setStep]=useState(0);const [county,setCounty]=useState(null);const [club,setClub]=useState(null);const [search,setSearch]=useState("");
+  const [sport,setSport]=useState(null);const [level,setLevel]=useState(null);const [col1,setCol1]=useState("#006633");const [col2,setCol2]=useState("#fff");const [expProv,setExpProv]=useState(null);
+  const [customClub,setCustomClub]=useState(false);
+  const countyClubs=county?(CLUB_DATA[county]||[]):[];
+  const filtered=countyClubs.filter(c=>c.n.toLowerCase().includes(search.toLowerCase()));
+  const selClub=countyClubs.find(c=>c.n===club);
+  const onSelectClub=c=>{setClub(c.n);setCol1(c.c1);setCol2(c.c2);setCustomClub(false)};
+  const STEPS=["COUNTY","CLUB","SPORT","COLOURS","CONFIRM"];
+  return <div style={{minHeight:"100vh",background:`linear-gradient(160deg,${C.bg} 0%,#0d1f3c 50%,#0f3a25 100%)`,color:C.white,fontFamily:"Inter,-apple-system,system-ui,sans-serif",paddingBottom:60}}>
+    <div style={{padding:"20px 20px 12px",textAlign:"center"}}><LogoIcon size={40}/><div style={{marginTop:8,fontSize:18,fontWeight:900}}>ROCK SOLID</div><div style={{fontSize:10,letterSpacing:4,color:C.greenB,fontFamily:"monospace"}}>ANALYTICS</div></div>
+    <div style={{padding:"0 20px 4px"}}><div style={{display:"flex",gap:3}}>{STEPS.map((_,i)=><div key={i} style={{flex:1,height:3,borderRadius:2,background:i<step?C.greenB:i===step?C.blue:C.border}}/>)}</div></div>
+    <div style={{padding:"8px 20px",maxWidth:400,margin:"0 auto"}}>
+      {step===0&&<div><SL>SELECT YOUR COUNTY</SL>
+        {Object.entries(PROVINCES).map(([pid,p])=>{const isO=expProv===pid;return <div key={pid} style={{marginBottom:8}}>
+          <button onClick={()=>setExpProv(isO?null:pid)} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:isO?C.navyL:C.bgCard,border:`1px solid ${isO?C.blue:C.border}`,borderRadius:isO?"10px 10px 0 0":"10px",cursor:"pointer"}}>
+            <MJ col1={p.col1} col2={p.col2} size={28}/><div style={{flex:1,textAlign:"left"}}><div style={{fontSize:14,fontWeight:700,color:C.white}}>{p.name}</div><div style={{fontSize:10,fontFamily:"monospace",color:p.counties.some(c=>c.active)?C.greenB:C.slate}}>{p.counties.length} counties</div></div><div style={{color:C.slate,transition:"transform 0.2s",transform:isO?"rotate(180deg)":"none"}}>▼</div>
+          </button>
+          {isO&&<div style={{background:C.bgDark,border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",padding:8}}>
+            {p.counties.map(c=>{const isSel=county===c.name;return <button key={c.name} onClick={()=>c.active&&setCounty(c.name)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:isSel?`${C.green}22`:"transparent",border:`1px solid ${isSel?C.greenB:"transparent"}`,borderRadius:8,cursor:c.active?"pointer":"default",opacity:c.active?1:0.35,marginBottom:4}}>
+              <MJ col1={c.col1} col2={c.col2} size={22}/><span style={{flex:1,textAlign:"left",fontSize:13,fontWeight:isSel?700:400,color:c.active?C.white:C.slate}}>{c.name}</span>
+              {c.active?<div style={{width:14,height:14,borderRadius:"50%",border:`2px solid ${isSel?C.greenB:C.border}`,background:isSel?C.greenB:"transparent"}}/>:<span style={{fontSize:9,fontFamily:"monospace",color:C.slate}}>SOON</span>}
+            </button>})}
+          </div>}
+        </div>})}
+        {county&&<div style={{marginTop:12,padding:12,background:`${C.green}22`,borderRadius:10,border:`1px solid ${C.greenB}44`,textAlign:"center"}}><div style={{fontSize:18,fontWeight:900}}>{county}</div></div>}
+        <div style={{marginTop:16}}><Btn onClick={()=>setStep(1)} disabled={!county}>NEXT — SELECT CLUB →</Btn></div>
+      </div>}
+      {step===1&&<div><SL>SELECT YOUR CLUB</SL>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search clubs..." style={{width:"100%",background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px",color:C.white,fontSize:13,boxSizing:"border-box",outline:"none",marginBottom:10,fontFamily:"Inter,-apple-system,system-ui,sans-serif"}}/>
+        <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:300,overflowY:"auto",marginBottom:8}}>
+          {filtered.map(c=><button key={c.n} onClick={()=>onSelectClub(c)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,textAlign:"left",padding:"10px 14px",background:club===c.n&&!customClub?`${C.green}22`:C.bgDark,border:`1px solid ${club===c.n&&!customClub?C.greenB:C.border}`,borderRadius:8,cursor:"pointer",color:C.white,fontSize:13,fontWeight:club===c.n&&!customClub?700:400}}><MJ col1={c.c1} col2={c.c2} size={22}/>{c.n}</button>)}
+          {filtered.length===0&&<div style={{textAlign:"center",padding:"16px 0",fontSize:11,color:C.slate,fontFamily:"monospace"}}>No clubs found in {county}</div>}
+        </div>
+        <button onClick={()=>{setCustomClub(true);setClub(search||"My Club")}} style={{width:"100%",textAlign:"left",padding:"10px 14px",background:customClub?`${C.blue}22`:C.bgDark,border:`1px dashed ${customClub?C.blue:C.border}`,borderRadius:8,cursor:"pointer",color:customClub?C.blue:C.slate,fontSize:12,fontFamily:"monospace"}}>+ My club isn't listed — create it{search?`: "${search}"`:""}</button>
+        <div style={{marginTop:16,display:"flex",gap:8}}><Btn onClick={()=>setStep(0)} variant="secondary" style={{flex:1}}>← BACK</Btn><Btn onClick={()=>setStep(2)} disabled={!club} style={{flex:2}}>NEXT →</Btn></div>
+      </div>}
+      {step===2&&<div><SL>SELECT SPORT</SL>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>{SPORTS.map(s=><button key={s.id} onClick={()=>setSport(s.id)} style={{padding:"16px 10px",textAlign:"center",background:sport===s.id?`${C.green}22`:C.bgDark,border:`1px solid ${sport===s.id?C.greenB:C.border}`,borderRadius:10,cursor:"pointer"}}><div style={{fontSize:24,marginBottom:4}}>{s.i}</div><div style={{fontSize:11,fontWeight:sport===s.id?700:400,color:sport===s.id?C.greenB:C.slate,fontFamily:"monospace"}}>{s.l}</div></button>)}</div>
+        {sport&&<><SL>SELECT LEVEL</SL><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{LEVELS.map(l=><button key={l} onClick={()=>setLevel(l)} style={{padding:"8px 14px",background:level===l?`${C.blue}22`:C.bgDark,border:`1px solid ${level===l?C.blue:C.border}`,borderRadius:6,cursor:"pointer",color:level===l?C.blue:C.slate,fontSize:11,fontFamily:"monospace",fontWeight:level===l?700:400}}>{l}</button>)}</div></>}
+        <div style={{marginTop:16,display:"flex",gap:8}}><Btn onClick={()=>setStep(1)} variant="secondary" style={{flex:1}}>← BACK</Btn><Btn onClick={()=>setStep(3)} disabled={!sport||!level} style={{flex:2}}>NEXT →</Btn></div>
+      </div>}
+      {step===3&&<div><SL>CLUB JERSEY COLOURS</SL>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><MJ col1={col1} col2={col2} size={80} num="1"/></div>
+        {!customClub&&<div style={{textAlign:"center",fontSize:10,fontFamily:"monospace",color:C.greenB,marginBottom:16}}>✓ MATCHED FROM CLUB RECORDS — EDIT IF NOT QUITE RIGHT</div>}
+        {[["PRIMARY",col1,setCol1],["SECONDARY",col2,setCol2]].map(([l,v,s])=><div key={l} style={{marginBottom:14}}><div style={{fontSize:9,fontFamily:"monospace",letterSpacing:2,color:C.slate,marginBottom:6}}>{l}</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{PRESETS.map(c=><button key={c} onClick={()=>s(c)} style={{width:28,height:28,borderRadius:5,background:c,border:v===c?"3px solid #fff":`2px solid ${C.border}`,cursor:"pointer",boxShadow:v===c?`0 0 0 2px ${C.greenB}`:"none"}}/>)}</div></div>)}
+        <div style={{marginTop:16,display:"flex",gap:8}}><Btn onClick={()=>setStep(2)} variant="secondary" style={{flex:1}}>← BACK</Btn><Btn onClick={()=>setStep(4)} style={{flex:2}}>NEXT →</Btn></div>
+      </div>}
+      {step===4&&<div><SL>CONFIRM YOUR CLUB</SL>
+        <div style={{background:C.bgCard,borderRadius:14,border:`1px solid ${C.border}`,padding:20,textAlign:"center",marginBottom:16}}><MJ col1={col1} col2={col2} size={60}/><div style={{fontSize:20,fontWeight:900,marginTop:10}}>{club}</div><div style={{fontSize:11,color:C.slate,fontFamily:"monospace",marginTop:4}}>{county} · {SPORTS.find(s=>s.id===sport)?.l} · {level}</div></div>
+        <div style={{background:"linear-gradient(135deg,#0f3a25,#0a1e10)",borderRadius:14,padding:20,border:`1px solid ${C.greenB}44`,textAlign:"center"}}><div style={{fontSize:10,fontFamily:"monospace",letterSpacing:3,color:C.greenB,marginBottom:10}}>READY TO GO</div><Btn onClick={()=>nav("home")}>CREATE CLUB & GET STARTED →</Btn></div>
+      </div>}
+    </div>
+  </div>
+}
+
+// ── HOME ──
+function HomeScreen({nav}){
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.white,fontFamily:"Inter,-apple-system,system-ui,sans-serif",paddingBottom:40}}>
+    <div style={{background:"linear-gradient(180deg,#0a1020,#070c18)",borderBottom:`1px solid ${C.border}`,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+      <LogoIcon size={32}/><div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>Bray Emmets</div><div style={{fontSize:10,color:C.blue,fontFamily:"monospace",letterSpacing:2}}>WICKLOW · 2025–2026</div></div>
+    </div>
+    <div style={{padding:"16px 16px 0",maxWidth:480,margin:"0 auto"}}>
+      <SL>LAST 5 RESULTS</SL>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
+        {MOCK_RESULTS.map((r,i)=>{const rc=r.r==="W"?C.greenB:r.r==="L"?C.red:C.gold;return <div key={i} style={{background:C.bgCard,borderRadius:10,border:`1px solid ${C.border}`,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:6,height:40,borderRadius:3,background:rc,flexShrink:0}}/><div style={{flex:1}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:8}}><MJ col1={r.c1} col2="#fff" size={20}/><span style={{fontSize:13,fontWeight:700}}>vs {r.opp}</span></div><div style={{fontFamily:"monospace",fontWeight:900,fontSize:13}}><span>{r.hg}-{String(r.hp).padStart(2,"0")}</span><span style={{fontSize:9,color:C.slate,fontWeight:400}}> ({r.hfg}-{String(r.hfp).padStart(2,"0")})</span><span style={{color:C.slate,margin:"0 4px",fontSize:9}}>to</span><span style={{color:C.slate}}>{r.ag}-{String(r.ap).padStart(2,"0")}</span><span style={{fontSize:9,color:C.slate,fontWeight:400}}> ({r.afg}-{String(r.afp).padStart(2,"0")})</span></div></div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:10,color:C.slate,fontFamily:"monospace"}}>{r.date} · {r.comp}</span><span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:rc}}>{r.r}</span></div>
+          </div></div>})}
+      </div>
+      <SL>ACTIONS</SL>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        {[{l:"Tag a Game",i:"🎯",d:"Start live match tagging",a:()=>nav("prematch"),p:true},{l:"View Stats",i:"📊",d:"Stats & leaderboards",a:()=>nav("leaderboards")},{l:"Opposition",i:"🛡",d:"Manage teams",a:()=>{}},{l:"Players",i:"👥",d:"Manage panel",a:()=>{}}].map((a,i)=><button key={i} onClick={a.a} style={{padding:"20px 14px",textAlign:"center",background:a.p?"linear-gradient(135deg,#0f3a25,#0a1e10)":C.bgCard,border:`1px solid ${a.p?`${C.greenB}44`:C.border}`,borderRadius:12,cursor:"pointer"}}><div style={{fontSize:28,marginBottom:8}}>{a.i}</div><div style={{fontSize:12,fontWeight:700,color:C.white,marginBottom:4}}>{a.l}</div><div style={{fontSize:9,color:C.slate,fontFamily:"monospace"}}>{a.d}</div></button>)}
+      </div>
+    </div>
+  </div>
+}
+
+// ── PRE-MATCH SETUP ──
+function PreMatchScreen({nav}){
+  const [step,setStep]=useState(0);
+  const [comp,setComp]=useState(null);const [round,setRound]=useState("");
+  const [opp,setOpp]=useState(null);const [venue,setVenue]=useState(null);const [ref_,setRef]=useState("");const [weather,setWeather]=useState(null);
+  const [vSearch,setVSearch]=useState("");const [vMap,setVMap]=useState(false);
+  const [oppSearch,setOppSearch]=useState("");const [customOpp,setCustomOpp]=useState(null);const [newPlayerName,setNewPlayerName]=useState("");
+  const wicklowClubs=CLUB_DATA["Wicklow"]||[];
+  const oppList=customOpp?[...wicklowClubs,customOpp]:wicklowClubs;
+  const oppFiltered=oppList.filter(c=>c.n.toLowerCase().includes(oppSearch.toLowerCase())&&c.n!=="Bray Emmets");
+  const [squad,setSquad]=useState(POSITIONS.map((p,i)=>({pos:p,jersey:i+1,pid:null,pname:""})));
+  const [activeSl,setActiveSl]=useState(null);
+  const assigned=squad.filter(s=>s.pid).map(s=>s.pid);
+  const starters=squad.filter(s=>s.pid).length;
+  const opposition=opp;
+  const STEPS=["MATCH","DETAILS","SQUAD","REVIEW"];
+  const compLabel=comp==="championship"?"Championship":comp==="league"?"League":"Challenge";
+
+  function assignP(slot,pid){const p=PANEL.find(x=>x.id===pid);setSquad(prev=>prev.map((s,i)=>i===slot?{...s,pid,pname:p?.n||"",jersey:p?.num||(i+1)}:s.pid===pid?{...s,pid:null,pname:""}:s));setActiveSl(null)}
+
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.white,fontFamily:"Inter,-apple-system,system-ui,sans-serif",paddingBottom:80}}>
+    <div style={{background:"linear-gradient(180deg,#0a1020,#070c18)",borderBottom:`1px solid ${C.border}`,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+      <button onClick={()=>step>0?setStep(step-1):nav("home")} style={{background:"none",border:"none",color:C.slate,cursor:"pointer",fontSize:20,padding:0}}>‹</button>
+      <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>Pre-Match Setup</div><div style={{fontSize:10,color:C.blue,fontFamily:"monospace",letterSpacing:2}}>BRAY EMMETS</div></div>
+      <div style={{fontSize:11,fontFamily:"monospace",color:C.slate}}>{step+1}/{STEPS.length}</div>
+    </div>
+    <div style={{padding:"0 16px"}}><div style={{display:"flex",gap:3,marginTop:12}}>{STEPS.map((_,i)=><div key={i} style={{flex:1,height:3,borderRadius:2,background:i<step?C.greenB:i===step?C.blue:C.border}}/>)}</div></div>
+    <div style={{padding:"8px 16px",maxWidth:480,margin:"0 auto"}}>
+      {step===0&&<div>
+        <SL>COMPETITION</SL>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:4}}>
+          {[{id:"championship",l:"Championship",col:C.red},{id:"league",l:"League",col:C.gold},{id:"challenge",l:"Challenge",col:C.slate}].map(m=><button key={m.id} onClick={()=>setComp(m.id)} style={{padding:"14px 8px",textAlign:"center",background:comp===m.id?`${m.col}22`:C.bgDark,border:`1px solid ${comp===m.id?m.col:C.border}`,borderRadius:8,cursor:"pointer",color:comp===m.id?m.col:C.slate,fontSize:12,fontFamily:"monospace",fontWeight:comp===m.id?700:400}}>{m.l}</button>)}
+        </div>
+        {comp&&comp!=="challenge"&&<><SL>ROUND</SL>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:4}}>{(comp==="championship"?["Round 1","Round 2","Round 3","QF","SF","Final"]:["Round 1","Round 2","Round 3","Round 4","Round 5","Round 6","Round 7","Round 8","Round 9","Round 10","Play-off","Final"]).map(r=><button key={r} onClick={()=>setRound(r)} style={{padding:"8px 12px",background:round===r?`${C.blue}22`:C.bgDark,border:`1px solid ${round===r?C.blue:C.border}`,borderRadius:6,cursor:"pointer",color:round===r?C.blue:C.slate,fontSize:11,fontFamily:"monospace"}}>{r}</button>)}</div></>}
+        <SL>OPPOSITION</SL>
+        <input value={oppSearch} onChange={e=>setOppSearch(e.target.value)} placeholder="Search Wicklow clubs..." style={{width:"100%",background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.white,fontSize:12,boxSizing:"border-box",outline:"none",fontFamily:"Inter,-apple-system,system-ui,sans-serif",marginBottom:8}}/>
+        <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:200,overflowY:"auto",marginBottom:6}}>
+        {oppFiltered.map(t=><button key={t.n} onClick={()=>setOpp(t)} style={{width:"100%",textAlign:"left",padding:"10px 14px",background:opp?.n===t.n?`${C.green}22`:C.bgDark,border:`1px solid ${opp?.n===t.n?C.greenB:C.border}`,borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:10,color:C.white,fontSize:13,fontWeight:opp?.n===t.n?700:400}}><MJ col1={t.c1} col2={t.c2} size={24}/>{t.n}</button>)}
+        </div>
+        {oppSearch&&oppFiltered.length===0&&<button onClick={()=>{const c={n:oppSearch,c1:"#888",c2:"#fff"};setCustomOpp(c);setOpp(c)}} style={{width:"100%",textAlign:"left",padding:"10px 14px",background:`${C.blue}22`,border:`1px dashed ${C.blue}`,borderRadius:8,cursor:"pointer",color:C.blue,fontSize:12,fontFamily:"monospace",marginBottom:6}}>+ Add "{oppSearch}" as opposition</button>}
+        <SL>VENUE — 38 WICKLOW GROUNDS</SL>
+        <div style={{display:"flex",gap:6,marginBottom:8}}>
+          <input value={vSearch} onChange={e=>setVSearch(e.target.value)} placeholder="Search grounds..." style={{flex:1,background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.white,fontSize:12,boxSizing:"border-box",outline:"none",fontFamily:"Inter,-apple-system,system-ui,sans-serif"}}/>
+          <button onClick={()=>setVMap(m=>!m)} style={{padding:"10px 14px",background:vMap?`${C.blue}22`:C.bgDark,border:`1px solid ${vMap?C.blue:C.border}`,borderRadius:8,cursor:"pointer",color:vMap?C.blue:C.slate,fontSize:11,fontFamily:"monospace",fontWeight:700}}>🗺 MAP</button>
+        </div>
+        {vMap&&<div style={{background:C.bgDark,borderRadius:10,border:`1px solid ${C.border}`,marginBottom:8,overflow:"hidden"}}>
+          <svg viewBox="0 0 240 300" style={{width:"100%",display:"block"}}>
+            <rect width="240" height="300" fill={C.bg}/>
+            {/* lat 52.69–53.22, lng -6.73 – -6.02 */}
+            {VENUES.map(v=>{
+              const px=18+((v.lng-(-6.73))/0.71)*204;
+              const py=14+((53.22-v.lat)/0.53)*272;
+              const isBray=v.name==="Bray Emmets";const isSel=venue===v.id;
+              return <g key={v.id} onClick={()=>setVenue(v.id)} style={{cursor:"pointer"}}>
+                <circle cx={px} cy={py} r={isSel?7:isBray?5:4} fill={isSel?C.gold:isBray?C.greenB:C.blue} opacity={isSel?1:0.75} stroke={isSel||isBray?"#fff":"none"} strokeWidth="1"/>
+                {(isBray||isSel)&&<text x={px} y={py-9} fill={isSel?C.gold:C.greenB} fontSize="7" fontFamily="monospace" textAnchor="middle" fontWeight="700">{v.name.length>14?v.name.slice(0,13)+"…":v.name}</text>}
+              </g>
+            })}
+            <text x="12" y="292" fill={C.slate} fontSize="7" fontFamily="monospace">● BRAY EMMETS  ● GROUNDS  ● SELECTED</text>
+          </svg>
+        </div>}
+        <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:vMap?160:280,overflowY:"auto",marginBottom:4}}>
+        {VENUES.filter(v=>v.name.toLowerCase().includes(vSearch.toLowerCase())).map(v=><button key={v.id} onClick={()=>setVenue(v.id)} style={{width:"100%",textAlign:"left",padding:"10px 14px",background:venue===v.id?`${C.green}22`:C.bgDark,border:`1px solid ${venue===v.id?C.greenB:C.border}`,borderRadius:8,cursor:"pointer",color:C.white,fontSize:13,fontWeight:venue===v.id?700:400,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{v.name}{v.dist===0&&<span style={{fontSize:9,color:C.greenB,fontFamily:"monospace",marginLeft:6}}>HOME</span>}</span><span style={{fontSize:10,color:C.slate,fontFamily:"monospace"}}>{v.dist}km</span></button>)}
+        </div>
+        <div style={{marginTop:16}}><Btn onClick={()=>setStep(1)} disabled={!comp||!opp||!venue}>NEXT →</Btn></div>
+      </div>}
+      {step===1&&<div>
+        <SL>REFEREE</SL>
+        <input value={ref_} onChange={e=>setRef(e.target.value)} placeholder="Referee name..." style={{width:"100%",background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px",color:C.white,fontSize:13,boxSizing:"border-box",outline:"none",fontFamily:"Inter,-apple-system,system-ui,sans-serif",marginBottom:8}}/>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {REFEREES.map(r=><button key={r.id} onClick={()=>setRef(r.name)} style={{padding:"6px 12px",background:ref_===r.name?`${C.green}22`:C.bgDark,border:`1px solid ${ref_===r.name?C.greenB:C.border}`,borderRadius:14,cursor:"pointer",color:ref_===r.name?C.greenB:C.slate,fontSize:10,fontFamily:"monospace"}}>{r.name}</button>)}
+        </div>
+        <SL>WEATHER</SL>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+          {WEATHER.map(w=><button key={w.id} onClick={()=>setWeather(w.id)} style={{padding:"12px 8px",textAlign:"center",background:weather===w.id?`${C.green}22`:C.bgDark,border:`1px solid ${weather===w.id?C.greenB:C.border}`,borderRadius:8,cursor:"pointer",color:weather===w.id?C.greenB:C.slate,fontSize:12,fontFamily:"monospace"}}><div style={{fontSize:18}}>{w.i}</div>{w.l}</button>)}
+        </div>
+        <div style={{marginTop:16,display:"flex",gap:8}}><Btn onClick={()=>setStep(0)} variant="secondary" style={{flex:1}}>← BACK</Btn><Btn onClick={()=>setStep(2)} disabled={!weather} style={{flex:2}}>NEXT →</Btn></div>
+      </div>}
+      {step===2&&<div>
+        <SL>BUILD STARTING XV</SL>
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          <button onClick={()=>{
+            setSquad(prev=>{const used=[];return prev.map((s,i)=>{if(i>=15)return s;const eligible=PANEL.find(p=>posMatch(POSITIONS[i],p.pos)&&!used.includes(p.id));if(eligible){used.push(eligible.id);return {...s,pid:eligible.id,pname:eligible.n}}const any=PANEL.find(p=>!used.includes(p.id));if(any){used.push(any.id);return {...s,pid:any.id,pname:any.n}}return s;});});setActiveSl(null);
+          }} style={{flex:1,padding:"10px 8px",background:`${C.blue}18`,border:`1px solid ${C.blue}44`,borderRadius:8,cursor:"pointer",color:C.blue,fontSize:11,fontWeight:700,fontFamily:"monospace",textAlign:"center"}}>↻ LAST MATCH</button>
+          <button onClick={()=>{setSquad(POSITIONS.map((p,i)=>({pos:p,jersey:i+1,pid:null,pname:""})));setActiveSl(null);}} style={{flex:1,padding:"10px 8px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,cursor:"pointer",color:C.slate,fontSize:11,fontFamily:"monospace",textAlign:"center"}}>✕ CLEAR ALL</button>
+        </div>
+        <div style={{fontSize:10,fontFamily:"monospace",color:C.slate,marginBottom:10}}>{starters}/15 STARTERS {starters>=15&&<span style={{color:C.greenB}}>✓ COMPLETE</span>}</div>
+        {[[0],[1,2,3],[4,5,6],[7,8],[9,10,11],[12,13,14]].map((row,ri)=><div key={ri} style={{display:"flex",justifyContent:"center",gap:6,marginBottom:6}}>
+          {row.map(idx=>{const s=squad[idx];const filled=!!s.pid;return <button key={idx} onClick={()=>setActiveSl(activeSl===idx?null:idx)} style={{width:row.length===1?90:row.length===2?110:88,padding:"6px 4px",background:activeSl===idx?`${C.gold}22`:filled?`${C.green}18`:C.bgDark,border:`1px solid ${activeSl===idx?C.gold:filled?`${C.greenB}44`:C.border}`,borderRadius:8,cursor:"pointer",textAlign:"center"}}>
+            <div style={{fontSize:14,fontWeight:900,fontFamily:"monospace",color:filled?C.greenB:C.slate}}>{idx+1}</div>
+            <div style={{fontSize:8,color:filled?C.white:C.slate,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{filled?s.pname:POS_SHORT[idx]}</div>
+          </button>})}
+        </div>)}
+        {activeSl!==null&&<div style={{background:C.bgCard,borderRadius:10,border:`1px solid ${C.gold}44`,padding:12,marginTop:8}}>
+          <div style={{fontSize:10,fontFamily:"monospace",color:C.gold,marginBottom:6}}>#{activeSl+1} — {POSITIONS[activeSl]}</div>
+          {(()=>{const eligible=PANEL.filter(p=>posMatch(POSITIONS[activeSl],p.pos)&&!assigned.includes(p.id));
+            const others=PANEL.filter(p=>!posMatch(POSITIONS[activeSl],p.pos)&&!assigned.includes(p.id));
+            const swappable=PANEL.filter(p=>assigned.includes(p.id)&&squad.findIndex(s=>s.pid===p.id)!==activeSl);
+          return <div style={{maxHeight:280,overflowY:"auto"}}>
+            {eligible.length>0&&<div style={{fontSize:9,fontFamily:"monospace",color:C.greenB,marginBottom:4}}>RECOMMENDED — PLAYS THIS POSITION</div>}
+            {eligible.map(p=><button key={p.id} onClick={()=>assignP(activeSl,p.id)} style={{width:"100%",textAlign:"left",padding:"8px 12px",marginBottom:4,background:`${C.green}22`,border:`1px solid ${C.greenB}44`,borderRadius:6,cursor:"pointer",color:C.white,fontSize:12,fontWeight:600}}>{p.n} <span style={{fontSize:9,color:C.slate}}>#{p.num} · {p.pos.join(" · ")}</span></button>)}
+            {others.length>0&&<div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginTop:8,marginBottom:4}}>ALL AVAILABLE</div>}
+            {others.map(p=><button key={p.id} onClick={()=>assignP(activeSl,p.id)} style={{width:"100%",textAlign:"left",padding:"8px 12px",marginBottom:4,background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:6,cursor:"pointer",color:C.white,fontSize:12}}>{p.n} <span style={{fontSize:9,color:C.slate}}>#{p.num} · {p.pos.join(" · ")}</span></button>)}
+            {swappable.length>0&&<div style={{fontSize:9,fontFamily:"monospace",color:C.gold,marginTop:8,marginBottom:4}}>SWAP FROM ANOTHER SLOT</div>}
+            {swappable.map(p=>{const fromSlot=squad.findIndex(s=>s.pid===p.id);return <button key={p.id} onClick={()=>assignP(activeSl,p.id)} style={{width:"100%",textAlign:"left",padding:"8px 12px",marginBottom:4,background:`${C.gold}11`,border:`1px solid ${C.gold}44`,borderRadius:6,cursor:"pointer",color:C.gold,fontSize:12}}>{p.n} <span style={{fontSize:9,color:C.slate}}>#{p.num} · currently #{fromSlot+1}</span></button>})}
+          </div>})()}
+        </div>}
+        <div style={{marginTop:16}}><div style={{fontSize:11,color:C.slate,marginBottom:8}}>Opposition defaults to <span style={{color:C.gold,fontFamily:"monospace"}}>{opposition?.n} #1–15</span></div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={()=>setStep(1)} variant="secondary" style={{flex:1}}>← BACK</Btn><Btn onClick={()=>setStep(3)} disabled={starters<15} style={{flex:2}}>REVIEW →</Btn></div></div>
+      </div>}
+      {step===3&&<div>
+        <SL>MATCH SUMMARY</SL>
+        <div style={{background:C.bgCard,borderRadius:14,border:`1px solid ${C.border}`,padding:18,marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:16,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
+            <div style={{textAlign:"center"}}><MJ col1={HOME_C1} col2={HOME_C2} size={36}/><div style={{fontSize:11,fontWeight:700,marginTop:4,color:C.blue}}>Bray Emmets</div></div>
+            <div style={{fontSize:12,fontWeight:900,color:C.slate,fontFamily:"monospace"}}>vs</div>
+            <div style={{textAlign:"center"}}>{opposition&&<MJ col1={opposition.c1} col2={opposition.c2} size={36}/>}<div style={{fontSize:11,fontWeight:700,marginTop:4,color:C.gold}}>{opposition?.n}</div></div>
+          </div>
+          {[["Competition",compLabel],["Round",round||"—"],["Venue",VENUES.find(v=>v.id===venue)?.name],["Referee",ref_||"—"],["Weather",WEATHER.find(w=>w.id===weather)?.l],["Squad",`${starters}/15 starters`]].map(([k,v],i)=>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:i<5?`1px solid ${C.border}`:"none"}}><span style={{fontSize:11,color:C.slate,fontFamily:"monospace"}}>{k}</span><span style={{fontSize:12,fontWeight:600,textAlign:"right"}}>{v}</span></div>
+          )}
+        </div>
+        <div style={{background:"linear-gradient(135deg,#0f3a25,#0a1e10)",borderRadius:14,padding:20,border:`1px solid ${C.greenB}44`,textAlign:"center"}}>
+          <div style={{fontSize:10,fontFamily:"monospace",letterSpacing:3,color:C.greenB,marginBottom:10}}>EVERYTHING SET</div>
+          <Btn onClick={()=>{resetMatch();MATCH.referee=ref_;MATCH.homeTeam='Bray Emmets';MATCH.awayTeam=opp?.n||'Opposition';MATCH.awayCol=opp?.c1||'#f0c040';MATCH.squad=squad;MATCH.comp=compLabel||'';MATCH.round=round||'';MATCH.venue=VENUES.find(v=>v.id===venue)?.name||'';MATCH.weather=weather||'';MATCH.date=new Date().toISOString().slice(0,10);resetLive('Bray Emmets',opp?.n||'Opposition',opp?.c1||'#f0c040');nav("tagger")}} disabled={starters<15} style={{boxShadow:"0 4px 24px rgba(52,201,103,0.3)"}}>▶ START MATCH →</Btn>
+          <div style={{fontSize:10,color:C.slate,marginTop:10,fontFamily:"monospace"}}>Screen will rotate to landscape for tagging</div>
+        </div>
+      </div>}
+    </div>
+  </div>
+}
+
+// ── NEON COLOURS FOR PITCH DOTS ──
+const NEON={green:"#00ff88",red:"#ff3355",purple:"#cc44ff",gold:"#ffdd00"};
+const HS=[[0.73,0.26,'2',1,1],[0.77,0.32,'P',1,1],[0.93,0.39,'P',1,1],[0.83,0.68,'P',1,1],[0.9,0.43,'G',1,1],[0.77,0.65,'P',1,1],[0.78,0.34,'W',1,1],[0.8,0.67,'P',1,1],[0.75,0.53,'P',1,1],[0.86,0.22,'W',1,1],[0.91,0.38,'P',1,1],[0.91,0.63,'G',1,1],[0.92,0.58,'P',1,1],[0.76,0.61,'S',1,1],[0.95,0.39,'G',1,1],[0.75,0.57,'P',1,1],[0.79,0.51,'P',1,1],[0.81,0.71,'W',2,1],[0.96,0.1,'W',2,1],[0.94,0.4,'P',2,1],[0.83,0.61,'S',2,1],[0.82,0.29,'S',2,1],[0.72,0.31,'2',2,1],[0.83,0.33,'W',2,1],[0.92,0.5,'W',2,1],[0.94,0.56,'G',2,1],[0.84,0.74,'P',1,1],[0.83,0.7,'W',1,1],[0.83,0.74,'W',1,1],[0.87,0.56,'P',1,1],[0.86,0.38,'S',1,1],[0.86,0.5,'P',1,1],[0.89,0.74,'P',1,1],[0.75,0.55,'W',1,1],[0.8,0.66,'W',1,1],[0.72,0.22,'2',1,1],[0.9,0.32,'W',1,1],[0.96,0.56,'G',1,1],[0.74,0.56,'S',1,1],[0.79,0.54,'S',1,1],[0.89,0.76,'S',1,1],[0.86,0.4,'W',2,1],[0.91,0.46,'P',2,1],[0.82,0.27,'X',2,1],[0.92,0.64,'B',2,1],[0.68,0.62,'W',2,1],[0.78,0.42,'S',2,1],[0.96,0.41,'X',2,1],[0.96,0.4,'G',2,1],[0.78,0.5,'W',2,1],[0.92,0.65,'P',2,1],[0.82,0.32,'S',2,1],[0.9,0.73,'S',2,1],[0.91,0.41,'P',1,1],[0.72,0.72,'P',1,1],[0.9,0.19,'W',1,1],[0.83,0.23,'W',1,1],[0.89,0.63,'G',1,1],[0.83,0.75,'P',1,1],[0.93,0.27,'P',1,1],[0.94,0.3,'P',1,1],[0.76,0.24,'P',1,1],[0.73,0.59,'W',1,1],[0.75,0.75,'X',1,1],[0.73,0.44,'W',1,1],[0.92,0.63,'X',1,1],[0.75,0.26,'X',1,1],[0.74,0.45,'P',1,1],[0.73,0.35,'W',1,1],[0.67,0.55,'W',1,1],[0.74,0.38,'P',1,1],[0.8,0.26,'B',1,1],[0.94,0.37,'P',1,1],[0.75,0.5,'P',2,1],[0.72,0.25,'P',2,1],[0.91,0.65,'W',2,1],[0.96,0.42,'G',2,1],[0.9,0.48,'G',2,1],[0.9,0.7,'P',2,1],[0.89,0.43,'G',2,1],[0.95,0.55,'G',2,1],[0.92,0.4,'P',2,1],[0.9,0.46,'X',2,1],[0.65,0.59,'S',2,1],[0.81,0.66,'S',2,1],[0.94,0.56,'G',2,1],[0.68,0.24,'W',2,1],[0.71,0.19,'S',2,1],[0.83,0.33,'P',2,1],[0.93,0.56,'P',2,1],[0.67,0.3,'S',2,1],[0.65,0.34,'W',2,1],[0.72,0.24,'W',1,1],[0.8,0.56,'P',1,1],[0.79,0.58,'P',1,1],[0.89,0.45,'G',1,1],[0.9,0.39,'W',1,1],[0.8,0.6,'X',1,1],[0.79,0.55,'P',1,1],[0.74,0.28,'W',1,1],[0.87,0.43,'X',1,1],[0.74,0.54,'S',1,1],[0.65,0.44,'W',1,1],[0.72,0.54,'B',1,1],[0.85,0.6,'P',1,1],[0.93,0.62,'W',1,1],[0.88,0.74,'P',1,1],[0.77,0.73,'W',1,1],[0.82,0.73,'P',1,1],[0.7,0.6,'W',1,1],[0.87,0.36,'B',2,1],[0.81,0.43,'P',2,1],[0.74,0.67,'X',2,1],[0.87,0.24,'P',2,1],[0.88,0.77,'W',2,1],[0.88,0.49,'B',2,1],[0.86,0.44,'W',2,1],[0.81,0.27,'W',2,1],[0.65,0.51,'S',2,1],[0.84,0.77,'P',2,1],[0.87,0.5,'G',2,1],[0.83,0.51,'X',2,1],[0.76,0.74,'P',2,1],[0.91,0.58,'P',2,1],[0.71,0.37,'P',2,1],[0.71,0.58,'P',2,1],[0.78,0.52,'P',2,1],[0.87,0.61,'P',2,1],[0.88,0.26,'W',2,1],[0.81,0.53,'P',1,1],[0.8,0.33,'P',1,1],[0.9,0.45,'P',1,1],[0.77,0.63,'W',1,1],[0.92,0.65,'G',1,1],[0.93,0.4,'G',1,1],[0.9,0.35,'X',1,1],[0.75,0.42,'P',1,1],[0.85,0.4,'P',1,1],[0.79,0.33,'W',2,1],[0.69,0.62,'S',2,1],[0.91,0.71,'W',2,1],[0.78,0.59,'W',2,1],[0.77,0.37,'P',2,1],[0.87,0.49,'P',2,1],[0.69,0.49,'S',2,1],[0.93,0.58,'G',2,1],[0.9,0.48,'X',2,1],[0.74,0.54,'W',2,1],[0.89,0.66,'P',2,1],[0.9,0.37,'G',2,1],[0.89,0.18,'X',1,1],[0.8,0.68,'P',1,1],[0.93,0.64,'P',1,1],[0.76,0.46,'W',1,1],[0.95,0.76,'P',1,1],[0.84,0.71,'S',1,1],[0.92,0.41,'G',1,1],[0.85,0.22,'W',1,1],[0.81,0.71,'P',1,1],[0.79,0.63,'W',1,1],[0.92,0.38,'B',1,1],[0.92,0.59,'G',1,1],[0.77,0.37,'P',1,1],[0.93,0.27,'P',1,1],[0.93,0.56,'X',2,1],[0.89,0.54,'P',2,1],[0.8,0.68,'P',2,1],[0.74,0.27,'W',2,1],[0.8,0.3,'W',2,1],[0.77,0.21,'2',2,1],[0.84,0.69,'P',2,1],[0.79,0.7,'P',2,1],[0.79,0.68,'W',2,1],[0.8,0.28,'W',2,1],[0.96,0.18,'P',2,1],[0.86,0.69,'X',2,1],[0.71,0.71,'2',2,1],[0.95,0.56,'G',2,1],[0.71,0.62,'W',2,1],[0.85,0.68,'P',2,1],[0.79,0.34,'S',1,1],[0.78,0.39,'W',1,1],[0.8,0.33,'P',1,1],[0.76,0.41,'P',1,1],[0.84,0.21,'W',1,1],[0.76,0.39,'P',1,1],[0.76,0.41,'W',1,1],[0.75,0.57,'W',1,1],[0.88,0.61,'P',1,1],[0.79,0.71,'W',1,1],[0.94,0.34,'X',1,1],[0.72,0.35,'2',1,1],[0.7,0.34,'W',1,1],[0.95,0.24,'P',1,1],[0.85,0.57,'P',1,1],[0.77,0.37,'P',1,1],[0.91,0.45,'G',1,1],[0.88,0.37,'P',1,1],[0.87,0.73,'W',1,1],[0.78,0.67,'P',1,1],[0.83,0.5,'W',1,1],[0.97,0.71,'W',1,1],[0.76,0.62,'P',2,1],[0.92,0.4,'X',2,1],[0.79,0.46,'W',2,1],[0.87,0.17,'S',2,1],[0.79,0.33,'P',2,1],[0.9,0.41,'G',2,1],[0.91,0.73,'P',2,1],[0.92,0.75,'P',2,1],[0.77,0.8,'W',2,1],[0.71,0.63,'B',2,1],[0.73,0.48,'W',2,1],[0.95,0.62,'G',2,1],[0.79,0.34,'P',2,1],[0.82,0.25,'W',2,1],[0.84,0.5,'P',2,1],[0.86,0.65,'P',1,1],[0.82,0.51,'P',1,1],[0.92,0.36,'P',1,1],[0.79,0.7,'W',1,1],[0.88,0.28,'M',1,1],[0.69,0.59,'S',1,1],[0.81,0.67,'W',1,1],[0.8,0.62,'S',1,1],[0.84,0.72,'P',1,1],[0.7,0.32,'W',1,1],[0.72,0.42,'P',1,1],[0.69,0.41,'2',1,1],[0.79,0.6,'W',1,1],[0.8,0.62,'P',2,1],[0.84,0.32,'P',2,1],[0.72,0.26,'2',2,1],[0.9,0.64,'W',2,1],[0.9,0.65,'W',2,1],[0.78,0.38,'W',2,1],[0.88,0.31,'W',2,1],[0.81,0.64,'W',2,1],[0.81,0.61,'P',2,1],[0.9,0.43,'G',1,1],[0.86,0.66,'P',1,1],[0.73,0.71,'W',1,1],[0.8,0.68,'P',1,1],[0.8,0.35,'P',1,1],[0.74,0.48,'W',1,1],[0.82,0.43,'P',1,1],[0.91,0.47,'G',1,1],[0.75,0.73,'2',1,1],[0.86,0.33,'W',2,1],[0.94,0.56,'P',2,1],[0.76,0.65,'W',2,1],[0.93,0.38,'P',2,1],[0.79,0.77,'W',2,1],[0.72,0.4,'W',2,1],[0.79,0.3,'S',2,1],[0.86,0.57,'S',2,1],[0.88,0.49,'P',2,1],[0.86,0.54,'P',2,1],[0.89,0.32,'X',2,1],[0.83,0.58,'P',2,1],[0.83,0.33,'P',1,1],[0.73,0.72,'S',1,1],[0.89,0.38,'P',1,1],[0.86,0.6,'P',1,1],[0.73,0.66,'W',1,1],[0.74,0.69,'S',1,1],[0.82,0.67,'S',1,1],[0.77,0.38,'B',1,1],[0.8,0.87,'P',1,1],[0.83,0.71,'P',1,1],[0.75,0.44,'P',1,1],[0.74,0.53,'P',1,1],[0.79,0.37,'P',1,1],[0.81,0.27,'P',2,1],[0.9,0.41,'X',2,1],[0.69,0.62,'W',2,1],[0.83,0.75,'W',2,1],[0.89,0.38,'P',2,1],[0.77,0.75,'W',2,1],[0.91,0.49,'P',2,1],[0.69,0.45,'W',2,1],[0.86,0.72,'P',2,1],[0.84,0.74,'P',2,1],[0.89,0.55,'P',2,1],[0.81,0.71,'W',2,1],[0.95,0.72,'S',2,1],[0.83,0.61,'W',2,1],[0.9,0.4,'X',2,1],[0.9,0.56,'X',1,1],[0.69,0.61,'W',1,1],[0.78,0.66,'P',1,1],[0.92,0.75,'W',1,1],[0.71,0.21,'2',1,1],[0.9,0.27,'P',1,1],[0.84,0.68,'P',1,1],[0.88,0.81,'W',1,1],[0.84,0.76,'W',1,1],[0.76,0.61,'W',1,1],[0.9,0.43,'W',2,1],[0.71,0.42,'2',2,1],[0.84,0.26,'P',2,1],[0.94,0.33,'G',2,1],[0.82,0.77,'W',2,1],[0.71,0.49,'2',2,1],[0.71,0.48,'W',2,1],[0.76,0.64,'P',2,1],[0.75,0.48,'P',1,1],[0.67,0.24,'S',1,1],[0.92,0.48,'G',1,1],[0.76,0.34,'P',1,1],[0.86,0.51,'P',1,1],[0.72,0.7,'2',1,1],[0.86,0.7,'W',1,1],[0.82,0.57,'P',1,1],[0.84,0.8,'W',1,1],[0.81,0.66,'P',1,1],[0.86,0.72,'P',1,1],[0.76,0.48,'P',1,1],[0.83,0.74,'P',1,1],[0.74,0.38,'P',1,1],[0.79,0.65,'W',1,1],[0.63,0.49,'W',2,1],[0.72,0.48,'P',2,1],[0.91,0.69,'P',2,1],[0.7,0.49,'2',2,1],[0.88,0.51,'G',2,1],[0.84,0.51,'P',2,1],[0.78,0.19,'W',2,1],[0.86,0.51,'P',2,1],[0.81,0.65,'W',2,1],[0.84,0.5,'P',2,1],[0.77,0.39,'S',1,2],[0.84,0.74,'S',1,2],[0.82,0.75,'W',1,2],[0.75,0.35,'S',1,2],[0.71,0.47,'2',1,2],[0.77,0.6,'W',1,2],[0.85,0.26,'W',1,2],[0.74,0.72,'2',1,2],[0.78,0.38,'P',1,2],[0.93,0.41,'B',1,2],[0.79,0.34,'W',1,2],[0.74,0.32,'2',1,2],[0.88,0.71,'W',2,2],[0.93,0.19,'B',2,2],[0.94,0.17,'W',2,2],[0.87,0.46,'P',2,2],[0.86,0.6,'P',2,2],[0.93,0.32,'W',2,2],[0.8,0.31,'W',2,2],[0.86,0.41,'P',2,2],[0.93,0.44,'X',2,2],[0.91,0.74,'P',2,2],[0.89,0.34,'X',2,2],[0.74,0.7,'W',2,2],[0.93,0.64,'B',2,2],[0.8,0.37,'P',1,2],[0.7,0.44,'W',1,2],[0.77,0.6,'P',1,2],[0.8,0.3,'P',1,2],[0.93,0.68,'W',1,2],[0.75,0.46,'P',1,2],[0.91,0.37,'W',1,2],[0.92,0.26,'P',1,2],[0.75,0.94,'2',1,2],[0.91,0.45,'W',1,2],[0.87,0.49,'P',1,2],[0.77,0.55,'P',1,2],[0.73,0.54,'W',2,2],[0.9,0.34,'P',2,2],[0.82,0.73,'P',2,2],[0.9,0.45,'W',2,2],[0.85,0.42,'P',2,2],[0.9,0.65,'P',2,2],[0.8,0.67,'P',2,2],[0.73,0.65,'2',2,2],[0.8,0.37,'P',2,2],[0.79,0.32,'P',2,2],[0.97,0.59,'G',2,2],[0.94,0.68,'P',2,2],[0.81,0.68,'P',2,2],[0.93,0.58,'P',2,2],[0.89,0.35,'P',2,2],[0.89,0.59,'P',2,2],[0.8,0.29,'P',2,2],[0.86,0.54,'P',2,2],[0.95,0.63,'X',2,2],[0.69,0.46,'P',1,2],[0.75,0.57,'S',1,2],[0.89,0.63,'X',1,2],[0.79,0.7,'W',1,2],[0.82,0.71,'P',1,2],[0.8,0.32,'W',1,2],[0.7,0.53,'W',1,2],[0.9,0.36,'P',1,2],[0.9,0.26,'S',1,2],[0.81,0.42,'W',1,2],[0.75,0.23,'2',1,2],[0.81,0.32,'S',1,2],[0.88,0.48,'X',1,2],[0.89,0.54,'P',1,2],[0.87,0.32,'P',1,2],[0.88,0.69,'P',1,2],[0.9,0.71,'X',1,2],[0.75,0.47,'W',2,2],[0.75,0.48,'P',2,2],[0.8,0.33,'S',2,2],[0.75,0.22,'2',2,2],[0.8,0.49,'W',2,2],[0.86,0.32,'W',2,2],[0.77,0.59,'W',2,2],[0.84,0.29,'W',2,2],[0.86,0.49,'P',1,2],[0.72,0.37,'W',1,2],[0.77,0.61,'P',1,2],[0.81,0.39,'P',1,2],[0.86,0.38,'P',1,2],[0.82,0.38,'P',1,2],[0.77,0.62,'P',1,2],[0.78,0.65,'W',1,2],[0.88,0.35,'W',1,2],[0.8,0.66,'S',1,2],[0.79,0.56,'W',1,2],[0.73,0.25,'2',1,2],[0.69,0.6,'S',2,2],[0.91,0.39,'G',2,2],[0.9,0.39,'P',2,2],[0.79,0.34,'W',2,2],[0.85,0.25,'P',2,2],[0.81,0.73,'S',2,2],[0.69,0.44,'2',2,2],[0.74,0.48,'P',2,2],[0.86,0.35,'P',2,2],[0.76,0.58,'B',2,2],[0.77,0.43,'W',2,2],[0.84,0.32,'P',2,2],[0.85,0.28,'P',2,2],[0.86,0.72,'P',2,2],[0.9,0.76,'P',2,2],[0.75,0.69,'S',2,2],[0.93,0.5,'G',2,2],[0.85,0.72,'P',2,2],[0.76,0.5,'P',2,2],[0.86,0.75,'P',2,2]];
+const OS=[[0.71,0.46,'W',1,1],[0.75,0.51,'P',1,1],[0.89,0.28,'P',1,1],[0.78,0.33,'P',1,1],[0.92,0.35,'W',1,1],[0.86,0.59,'B',1,1],[0.85,0.61,'B',1,1],[0.81,0.67,'P',1,1],[0.88,0.5,'P',1,1],[0.97,0.24,'S',1,1],[0.82,0.27,'S',1,1],[0.77,0.68,'P',1,1],[0.78,0.63,'B',1,1],[0.82,0.73,'W',1,1],[0.89,0.43,'G',1,1],[0.76,0.77,'S',1,1],[0.94,0.36,'G',1,1],[0.77,0.58,'S',2,1],[0.74,0.48,'W',2,1],[0.82,0.26,'W',2,1],[0.92,0.58,'G',2,1],[0.89,0.63,'P',2,1],[0.82,0.63,'P',2,1],[0.69,0.46,'W',2,1],[0.76,0.6,'P',2,1],[0.84,0.7,'P',2,1],[0.8,0.67,'P',2,1],[0.73,0.79,'2',2,1],[0.68,0.48,'2',2,1],[0.68,0.28,'S',2,1],[0.68,0.46,'W',1,1],[0.81,0.28,'B',1,1],[0.69,0.38,'P',1,1],[0.84,0.52,'P',1,1],[0.9,0.68,'P',1,1],[0.7,0.78,'S',1,1],[0.91,0.5,'G',1,1],[0.88,0.48,'G',1,1],[0.9,0.81,'P',1,1],[0.71,0.33,'W',1,1],[0.68,0.77,'W',1,1],[0.85,0.23,'W',2,1],[0.86,0.72,'P',2,1],[0.78,0.33,'P',2,1],[0.71,0.18,'W',2,1],[0.91,0.45,'X',2,1],[0.88,0.76,'X',2,1],[0.83,0.67,'W',2,1],[0.81,0.7,'W',2,1],[0.92,0.57,'X',2,1],[0.74,0.44,'W',2,1],[0.9,0.65,'P',2,1],[0.8,0.7,'W',2,1],[0.75,0.23,'W',2,1],[0.87,0.79,'P',2,1],[0.92,0.38,'G',2,1],[0.89,0.6,'P',1,1],[0.71,0.22,'W',1,1],[0.95,0.3,'P',1,1],[0.73,0.57,'P',1,1],[0.73,0.32,'P',1,1],[0.76,0.75,'W',2,1],[0.72,0.65,'P',2,1],[0.74,0.5,'W',2,1],[0.76,0.7,'P',2,1],[0.73,0.74,'W',2,1],[0.7,0.75,'W',2,1],[0.76,0.37,'P',2,1],[0.69,0.86,'W',2,1],[0.7,0.86,'2',2,1],[0.72,0.81,'2',2,1],[0.69,0.52,'W',2,1],[0.69,0.81,'W',2,1],[0.67,0.5,'W',1,1],[0.69,0.42,'S',1,1],[0.82,0.77,'S',1,1],[0.72,0.67,'P',1,1],[0.71,0.35,'P',1,1],[0.93,0.64,'P',1,1],[0.68,0.57,'W',1,1],[0.83,0.54,'P',1,1],[0.66,0.46,'2',1,1],[0.66,0.51,'2',1,1],[0.76,0.76,'S',2,1],[0.84,0.76,'P',2,1],[0.7,0.75,'W',2,1],[0.66,0.67,'S',2,1],[0.66,0.57,'S',2,1],[0.69,0.61,'W',2,1],[0.65,0.48,'W',2,1],[0.68,0.53,'B',2,1],[0.72,0.78,'W',2,1],[0.68,0.77,'W',2,1],[0.76,0.78,'S',2,1],[0.71,0.71,'W',2,1],[0.78,0.19,'B',1,1],[0.79,0.6,'P',1,1],[0.88,0.42,'P',1,1],[0.73,0.69,'S',1,1],[0.91,0.75,'P',1,1],[0.88,0.29,'P',1,1],[0.83,0.32,'P',1,1],[0.91,0.65,'P',1,1],[0.79,0.57,'P',1,1],[0.78,0.64,'W',1,1],[0.82,0.66,'P',1,1],[0.8,0.64,'P',1,1],[0.83,0.63,'W',1,1],[0.88,0.5,'P',2,1],[0.76,0.38,'S',2,1],[0.73,0.68,'B',2,1],[0.8,0.37,'P',2,1],[0.76,0.61,'P',2,1],[0.68,0.56,'S',2,1],[0.8,0.71,'X',2,1],[0.82,0.73,'W',2,1],[0.89,0.51,'P',2,1],[0.88,0.64,'B',2,1],[0.73,0.74,'W',2,1],[0.75,0.47,'P',2,1],[0.75,0.62,'W',2,1],[0.7,0.42,'S',2,1],[0.73,0.63,'P',2,1],[0.84,0.54,'W',2,1],[0.85,0.34,'W',2,1],[0.72,0.49,'P',1,1],[0.82,0.68,'S',1,1],[0.7,0.52,'W',1,1],[0.75,0.54,'P',1,1],[0.79,0.68,'W',1,1],[0.8,0.7,'W',1,1],[0.75,0.41,'P',1,1],[0.7,0.6,'W',1,1],[0.74,0.43,'W',1,1],[0.9,0.4,'P',1,1],[0.8,0.41,'P',1,1],[0.76,0.72,'W',1,1],[0.74,0.41,'P',1,1],[0.69,0.5,'2',1,1],[0.75,0.48,'P',2,1],[0.78,0.32,'P',2,1],[0.73,0.4,'S',2,1],[0.71,0.52,'W',2,1],[0.79,0.54,'P',2,1],[0.96,0.59,'G',2,1],[0.81,0.61,'P',2,1],[0.89,0.75,'P',1,1],[0.82,0.8,'W',1,1],[0.96,0.69,'P',1,1],[0.79,0.33,'B',1,1],[0.76,0.63,'W',1,1],[0.75,0.52,'W',1,1],[0.68,0.61,'W',1,1],[0.96,0.71,'X',1,1],[0.9,0.61,'P',1,1],[0.73,0.68,'2',2,1],[0.89,0.24,'P',2,1],[0.81,0.74,'W',2,1],[0.94,0.58,'G',2,1],[0.92,0.3,'W',2,1],[0.61,0.45,'P',2,1],[0.71,0.42,'W',2,1],[0.7,0.4,'2',2,1],[0.8,0.63,'P',2,1],[0.8,0.35,'P',1,1],[0.77,0.34,'P',1,1],[0.7,0.35,'S',1,1],[0.71,0.62,'S',2,1],[0.92,0.58,'G',2,1],[0.72,0.57,'S',2,1],[0.68,0.53,'P',2,1],[0.81,0.57,'P',2,1],[0.97,0.35,'W',2,1],[0.7,0.54,'S',2,1],[0.86,0.53,'W',2,1],[0.75,0.73,'W',2,1],[0.78,0.38,'P',2,1],[0.75,0.46,'S',2,1],[0.67,0.35,'2',2,1],[0.71,0.74,'S',2,1],[0.95,0.52,'G',2,1],[0.78,0.61,'P',1,1],[0.84,0.37,'P',1,1],[0.83,0.24,'W',1,1],[0.83,0.57,'P',1,1],[0.86,0.3,'P',1,1],[0.91,0.69,'X',1,1],[0.89,0.45,'X',1,1],[0.91,0.6,'X',1,1],[0.69,0.38,'W',1,1],[0.82,0.71,'P',1,1],[0.9,0.69,'W',1,1],[0.83,0.63,'W',1,1],[0.79,0.77,'S',2,1],[0.92,0.59,'G',2,1],[0.79,0.34,'W',2,1],[0.88,0.45,'W',2,1],[0.75,0.71,'2',2,1],[0.77,0.42,'P',2,1],[0.75,0.29,'2',2,1],[0.73,0.3,'2',2,1],[0.72,0.28,'2',1,1],[0.98,0.73,'X',1,1],[0.96,0.31,'P',1,1],[0.69,0.55,'P',1,1],[0.74,0.52,'P',1,1],[0.93,0.64,'W',1,1],[0.94,0.6,'G',1,1],[0.91,0.5,'X',1,1],[0.67,0.62,'X',1,1],[0.79,0.3,'P',1,1],[0.78,0.32,'B',1,1],[0.78,0.7,'S',2,1],[0.89,0.51,'P',2,1],[0.79,0.71,'S',2,1],[0.85,0.45,'S',2,1],[0.9,0.49,'P',2,1],[0.87,0.2,'S',2,1],[0.97,0.36,'X',2,1],[0.91,0.44,'B',2,1],[0.84,0.72,'P',2,1],[0.78,0.34,'P',2,1],[0.91,0.2,'S',1,1],[0.85,0.23,'P',1,1],[0.93,0.39,'P',1,1],[0.87,0.72,'P',1,1],[0.72,0.27,'S',1,1],[0.76,0.31,'W',1,1],[0.8,0.57,'W',1,1],[0.86,0.72,'P',1,1],[0.72,0.69,'W',1,1],[0.77,0.6,'P',1,1],[0.88,0.29,'B',1,1],[0.84,0.71,'P',1,1],[0.83,0.66,'P',1,1],[0.83,0.27,'P',2,1],[0.79,0.68,'P',2,1],[0.78,0.32,'W',2,1],[0.94,0.65,'P',2,1],[0.73,0.31,'2',2,1],[0.79,0.73,'P',2,1],[0.9,0.23,'P',2,1],[0.78,0.37,'P',2,1],[0.96,0.68,'S',2,1],[0.92,0.68,'P',1,1],[0.92,0.68,'P',1,1],[0.71,0.39,'W',1,1],[0.87,0.44,'B',1,1],[0.77,0.61,'W',1,1],[0.79,0.4,'P',1,1],[0.8,0.64,'P',1,1],[0.94,0.43,'G',1,1],[0.78,0.35,'W',1,1],[0.84,0.58,'W',1,1],[0.72,0.23,'2',1,1],[0.85,0.65,'P',1,1],[0.82,0.34,'W',1,1],[0.7,0.32,'2',1,1],[0.75,0.45,'P',2,1],[0.92,0.47,'X',2,1],[0.68,0.39,'W',2,1],[0.85,0.43,'X',2,1],[0.8,0.7,'P',2,1],[0.89,0.37,'P',2,1],[0.77,0.35,'W',2,1],[0.71,0.52,'2',2,1],[0.77,0.66,'P',2,1],[0.74,0.51,'S',2,1],[0.69,0.49,'S',2,1],[0.92,0.68,'B',1,2],[0.69,0.63,'W',1,2],[0.8,0.67,'P',1,2],[0.83,0.64,'B',1,2],[0.77,0.29,'B',1,2],[0.75,0.62,'S',1,2],[0.81,0.26,'B',1,2],[0.69,0.5,'P',1,2],[0.84,0.41,'W',1,2],[0.95,0.74,'W',1,2],[0.96,0.21,'P',1,2],[0.79,0.31,'P',1,2],[0.79,0.39,'P',2,2],[0.71,0.39,'2',2,2],[0.78,0.69,'P',2,2],[0.8,0.67,'P',2,2],[0.82,0.73,'P',2,2],[0.81,0.28,'P',2,2],[0.91,0.69,'P',2,2],[0.87,0.62,'P',2,2],[0.78,0.69,'P',2,2],[0.82,0.23,'W',2,2],[0.7,0.57,'W',2,2],[0.8,0.05,'W',2,2],[0.77,0.54,'P',2,2],[0.85,0.81,'W',1,2],[0.67,0.32,'W',1,2],[0.72,0.64,'W',1,2],[0.85,0.72,'W',1,2],[0.69,0.51,'W',1,2],[0.89,0.42,'B',1,2],[0.68,0.4,'S',1,2],[0.91,0.48,'P',1,2],[0.78,0.69,'P',1,2],[0.89,0.78,'W',2,2],[0.88,0.21,'W',2,2],[0.8,0.33,'W',2,2],[0.88,0.37,'P',2,2],[0.9,0.39,'G',2,2],[0.81,0.84,'W',2,2],[0.7,0.35,'S',2,2],[0.79,0.72,'W',2,2],[0.86,0.56,'P',2,2],[0.89,0.49,'X',1,2],[0.81,0.68,'W',1,2],[0.81,0.67,'W',1,2],[0.81,0.69,'P',1,2],[0.79,0.7,'S',1,2],[0.8,0.68,'S',1,2],[0.92,0.34,'S',1,2],[0.7,0.64,'W',1,2],[0.86,0.71,'W',1,2],[0.93,0.26,'P',1,2],[0.86,0.45,'P',1,2],[0.85,0.3,'W',2,2],[0.86,0.61,'G',2,2],[0.77,0.41,'W',2,2],[0.88,0.71,'P',2,2],[0.82,0.63,'P',2,2],[0.79,0.33,'P',2,2],[0.93,0.35,'W',2,2],[0.81,0.68,'W',2,2],[0.8,0.69,'W',2,2],[0.84,0.64,'P',2,2],[0.69,0.66,'2',1,2],[0.83,0.35,'W',1,2],[0.74,0.51,'P',1,2],[0.95,0.36,'P',1,2],[0.68,0.55,'S',1,2],[0.85,0.73,'P',2,2],[0.92,0.74,'W',2,2],[0.79,0.65,'P',2,2],[0.73,0.52,'X',2,2],[0.88,0.26,'W',2,2],[0.75,0.48,'W',2,2],[0.89,0.4,'G',2,2],[0.81,0.69,'W',2,2]];
+const HK=[[0.29,0.16,'W',1,1],[0.34,0.19,'W',1,1],[0.35,0.76,'L',1,1],[0.24,0.98,'W',1,1],[0.54,0.56,'W',1,1],[0.17,0.1,'W',1,1],[0.39,0.82,'L',1,1],[0.42,0.78,'L',1,1],[0.29,0.73,'W',1,1],[0.22,0.25,'L',1,1],[0.58,0.47,'L',1,1],[0.37,0.88,'L',2,1],[0.35,0.25,'W',2,1],[0.59,0.68,'L',2,1],[0.42,0.49,'L',2,1],[0.51,0.67,'W',2,1],[0.51,0.65,'W',2,1],[0.57,0.65,'W',2,1],[0.51,0.23,'L',2,1],[0.6,0.78,'W',2,1],[0.51,0.68,'W',2,1],[0.51,0.61,'W',2,1],[0.57,0.77,'W',2,1],[0.45,0.27,'W',2,1],[0.45,0.56,'L',1,1],[0.37,0.44,'W',1,1],[0.55,0.11,'W',1,1],[0.56,0.72,'L',1,1],[0.56,0.73,'L',1,1],[0.17,0.09,'W',1,1],[0.37,0.5,'W',1,1],[0.16,0.09,'W',1,1],[0.57,0.54,'W',1,1],[0.54,0.43,'L',2,1],[0.4,0.48,'L',2,1],[0.44,0.43,'W',2,1],[0.56,0.17,'L',2,1],[0.55,0.67,'W',2,1],[0.52,0.68,'W',2,1],[0.56,0.36,'L',2,1],[0.47,0.13,'W',2,1],[0.48,0.63,'L',2,1],[0.54,0.32,'L',2,1],[0.54,0.71,'L',2,1],[0.43,0.29,'L',2,1],[0.5,0.11,'W',1,1],[0.34,0.84,'L',1,1],[0.28,0.24,'W',1,1],[0.38,0.67,'W',2,1],[0.46,0.18,'L',2,1],[0.36,0.85,'W',2,1],[0.47,0.53,'W',2,1],[0.41,0.7,'W',2,1],[0.48,0.79,'W',2,1],[0.46,0.8,'W',2,1],[0.19,0.12,'W',2,1],[0.51,0.19,'W',2,1],[0.24,0.76,'W',2,1],[0.36,0.15,'W',2,1],[0.4,0.22,'W',1,1],[0.54,0.74,'L',1,1],[0.4,0.2,'W',1,1],[0.49,0.67,'L',1,1],[0.43,0.79,'W',1,1],[0.49,0.23,'W',1,1],[0.48,0.66,'L',1,1],[0.53,0.79,'W',2,1],[0.34,0.66,'W',2,1],[0.39,0.26,'W',2,1],[0.54,0.74,'W',2,1],[0.24,0.79,'W',2,1],[0.56,0.3,'L',2,1],[0.4,0.25,'L',1,1],[0.53,0.61,'W',1,1],[0.37,0.36,'L',1,1],[0.56,0.74,'W',1,1],[0.57,0.5,'L',1,1],[0.57,0.42,'L',1,1],[0.59,0.22,'W',1,1],[0.35,0.97,'W',1,1],[0.51,0.65,'W',1,1],[0.38,0.34,'W',1,1],[0.58,0.68,'L',1,1],[0.39,0.94,'L',1,1],[0.54,0.71,'L',1,1],[0.36,0.99,'L',2,1],[0.43,0.16,'W',2,1],[0.46,0.61,'L',2,1],[0.54,0.3,'L',2,1],[0.6,0.74,'W',2,1],[0.56,0.2,'L',2,1],[0.43,0.8,'L',2,1],[0.5,0.13,'L',2,1],[0.58,0.72,'W',2,1],[0.36,0.07,'L',1,1],[0.59,0.05,'W',1,1],[0.33,0.51,'L',1,1],[0.36,0.85,'W',1,1],[0.52,0.26,'L',1,1],[0.33,0.28,'W',1,1],[0.59,0.11,'W',1,1],[0.35,0.2,'W',1,1],[0.4,0.29,'W',1,1],[0.36,0.31,'L',1,1],[0.54,0.22,'L',1,1],[0.56,0.87,'W',1,1],[0.43,0.64,'L',2,1],[0.45,0.82,'L',2,1],[0.32,0.46,'W',2,1],[0.56,0.1,'L',2,1],[0.44,0.85,'W',2,1],[0.46,0.52,'L',1,1],[0.58,0.7,'L',1,1],[0.56,0.27,'W',1,1],[0.55,0.67,'W',1,1],[0.35,0.16,'W',1,1],[0.37,0.19,'W',1,1],[0.45,0.32,'W',1,1],[0.53,0.61,'W',2,1],[0.33,0.72,'L',2,1],[0.46,0.15,'W',2,1],[0.29,0.37,'W',2,1],[0.26,0.29,'W',2,1],[0.45,0.17,'W',2,1],[0.3,0.59,'L',2,1],[0.54,0.57,'L',2,1],[0.56,0.67,'L',2,1],[0.19,0.12,'W',1,1],[0.54,0.25,'W',1,1],[0.39,0.23,'W',2,1],[0.4,0.19,'W',2,1],[0.46,0.47,'W',2,1],[0.36,0.77,'W',2,1],[0.32,0.21,'W',2,1],[0.33,0.29,'W',2,1],[0.33,1.0,'W',2,1],[0.32,0.51,'L',2,1],[0.28,0.17,'W',2,1],[0.42,0.25,'L',2,1],[0.51,0.18,'L',1,1],[0.26,0.76,'W',1,1],[0.35,0.79,'L',1,1],[0.22,0.19,'W',1,1],[0.57,0.43,'L',1,1],[0.33,0.82,'W',1,1],[0.26,0.85,'W',1,1],[0.26,0.16,'W',2,1],[0.24,0.72,'W',2,1],[0.28,0.6,'W',2,1],[0.29,0.55,'W',2,1],[0.49,0.37,'W',2,1],[0.27,0.28,'W',2,1],[0.31,0.14,'W',2,1],[0.31,0.42,'W',1,1],[0.35,0.38,'W',1,1],[0.54,0.27,'W',1,1],[0.57,0.7,'W',1,1],[0.37,0.85,'W',1,1],[0.3,0.99,'W',1,1],[0.56,0.52,'W',1,1],[0.45,0.67,'W',2,1],[0.27,0.32,'W',2,1],[0.44,0.26,'L',2,1],[0.4,0.77,'L',1,1],[0.41,0.08,'W',1,1],[0.39,0.02,'W',1,1],[0.29,0.79,'W',1,1],[0.35,0.82,'W',1,1],[0.45,0.62,'L',1,1],[0.5,0.28,'L',1,1],[0.54,0.25,'L',1,1],[0.25,0.88,'W',1,1],[0.33,0.29,'W',2,1],[0.36,0.88,'W',2,1],[0.38,0.81,'L',2,1],[0.56,0.72,'W',2,1],[0.32,0.91,'W',2,1],[0.56,0.64,'W',2,1],[0.59,0.11,'W',2,1],[0.38,0.18,'W',2,1],[0.17,0.88,'W',2,1],[0.54,0.3,'W',1,1],[0.32,0.38,'W',1,1],[0.35,0.86,'W',1,1],[0.51,0.62,'W',1,1],[0.33,0.85,'W',1,1],[0.33,0.77,'W',1,1],[0.34,0.98,'W',1,1],[0.19,0.13,'W',1,1],[0.36,0.84,'L',1,1],[0.2,0.16,'W',1,1],[0.52,0.31,'W',1,1],[0.17,0.89,'W',1,1],[0.29,0.28,'W',1,1],[0.36,0.11,'W',2,1],[0.42,0.28,'L',2,1],[0.34,0.36,'W',2,1],[0.38,0.67,'L',2,1],[0.24,0.08,'W',2,1],[0.27,0.67,'W',2,1],[0.25,0.25,'W',2,1],[0.4,0.19,'W',1,2],[0.35,0.51,'W',1,2],[0.44,0.47,'L',1,2],[0.59,0.81,'W',1,2],[0.41,0.38,'W',1,2],[0.18,0.9,'W',1,2],[0.56,0.71,'W',1,2],[0.31,0.65,'L',2,2],[0.19,0.85,'W',2,2],[0.25,0.98,'W',2,2],[0.17,0.04,'W',2,2],[0.44,0.17,'L',2,2],[0.48,0.63,'L',2,2],[0.29,0.59,'W',2,2],[0.57,0.34,'L',2,2],[0.48,0.27,'L',2,2],[0.24,0.69,'W',2,2],[0.37,0.16,'W',2,2],[0.44,0.67,'W',2,2],[0.18,0.1,'W',2,2],[0.31,0.28,'W',1,2],[0.52,0.75,'W',1,2],[0.59,0.05,'L',1,2],[0.44,0.66,'W',1,2],[0.31,0.25,'L',1,2],[0.46,0.21,'L',1,2],[0.22,0.87,'W',1,2],[0.41,0.78,'W',2,2],[0.38,0.17,'W',2,2],[0.44,0.16,'L',2,2],[0.43,0.16,'L',2,2],[0.53,0.42,'W',2,2],[0.18,0.1,'W',2,2],[0.28,0.16,'L',2,2],[0.58,0.02,'W',1,2],[0.39,0.42,'L',1,2],[0.2,0.9,'W',1,2],[0.3,0.5,'W',1,2],[0.34,0.15,'W',1,2],[0.49,0.17,'W',1,2],[0.4,0.93,'W',2,2],[0.4,0.09,'W',2,2],[0.28,0.62,'L',2,2],[0.44,0.8,'W',2,2],[0.51,0.5,'L',2,2],[0.37,0.27,'W',2,2],[0.19,0.11,'W',2,2],[0.35,0.83,'W',2,2],[0.4,0.09,'L',2,2],[0.59,0.47,'W',2,2],[0.25,0.79,'W',1,2],[0.21,0.14,'W',1,2],[0.39,0.21,'L',1,2],[0.34,0.17,'W',1,2],[0.57,0.34,'W',2,2],[0.58,0.22,'W',2,2],[0.3,0.56,'W',2,2],[0.22,0.91,'W',2,2],[0.58,0.49,'W',2,2],[0.38,0.27,'W',2,2]];
+const KO_SPEED={overall:26,short:21,mid:28,long:27,afterPoint:27,afterGoal:37,afterWide:24};
+const MATCH={tagged:[],score:{h:{g:0,p:0,fg:0,fp:0},a:{g:0,p:0,fg:0,fp:0}},clock:0,period:1,referee:'',homeTeam:'Bray Emmets',awayTeam:'Opposition',awayCol:'#f0c040',squad:[],comp:'',round:'',venue:'',weather:''};
+function resetMatch(){MATCH.tagged=[];MATCH.score={h:{g:0,p:0,fg:0,fp:0},a:{g:0,p:0,fg:0,fp:0}};MATCH.clock=0;MATCH.period=1;MATCH.referee='';MATCH.homeTeam='Bray Emmets';MATCH.awayTeam='Opposition';MATCH.awayCol='#f0c040';MATCH.squad=[];}
+
+// ── SUPABASE LIVE SYNC ──
+const SB_URL='https://grwihhxbwfcwpvyqpdkr.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdyd2loaHhid2Zjd3B2eXFwZGtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzY2NTEsImV4cCI6MjA5NzExMjY1MX0.BxvkoSOr1T2r09CH98L8-bUjSlz5IMBPW_Fln4VR0yc';
+function sbPatch(data){fetch(`${SB_URL}/rest/v1/live_match?id=eq.current`,{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).catch(()=>{})}
+function buildScorers(tagged,team){
+  const m={};
+  tagged.forEach(e=>{if(e.team!==team)return;const pts=e.outcome==='Goal'?3:e.outcome==='2-Pointer'?2:e.outcome==='Point'?1:0;if(!pts||!e.player)return;const k=e.player;if(!m[k])m[k]={num:k,name:SQUAD_NAMES[k]||null,g:0,p:0,fg:0,fp:0,two:0};const isFree=e.ev==='free';if(e.outcome==='Goal'){m[k].g++;if(isFree)m[k].fg++}else{m[k].p+=pts;if(isFree)m[k].fp+=pts}if(e.outcome==='2-Pointer')m[k].two++});
+  return Object.values(m).sort((a,b)=>(b.g*3+b.p)-(a.g*3+a.p));
+}
+function buildLastEvents(tagged,period){
+  return tagged.slice(-5).reverse().map(e=>{
+    const t=period===2?e.time+1800:e.time;const mm=String(Math.floor(t/60)).padStart(2,'0');const ss=String(t%60).padStart(2,'0');
+    const team=e.team==='h'?'Bray':'Opp';const pl=e.player?` #${e.player}`:'';const fr=e.ev==='free'?' (free)':'';
+    let desc=`${e.outcome}${pl}${fr} — ${team}`;
+    if(e.ev==='kickout')desc=`Kickout ${e.outcome}${pl} — ${team}`;
+    if(e.ev==='tackle')desc=`Tackle: ${e.outcome}${pl} — ${team}`;
+    if(e.ev==='poss_lost')desc=`Turnover: ${e.outcome}${pl} — ${team}`;
+    if(e.ev==='booking')desc=`${e.outcome} Card${pl} — ${team}`;
+    if(e.ev==='sub')desc=`Sub: ${e.outcome}${pl} — ${team}`;
+    return{time:`${mm}:${ss}`,desc,team:e.team};
+  });
+}
+function syncLive(status){
+  const t=MATCH.tagged;const s=MATCH.score;
+  sbPatch({updated_at:new Date().toISOString(),home_goals:s.h.g,home_points:s.h.p,home_free_goals:s.h.fg,home_free_points:s.h.fp,
+    home_2pt:t.filter(e=>e.team==='h'&&e.outcome==='2-Pointer').length,
+    away_goals:s.a.g,away_points:s.a.p,away_free_goals:s.a.fg,away_free_points:s.a.fp,
+    away_2pt:t.filter(e=>e.team==='a'&&e.outcome==='2-Pointer').length,
+    clock_seconds:MATCH.clock,period:MATCH.period,
+    home_scorers:JSON.stringify(buildScorers(t,'h')),away_scorers:JSON.stringify(buildScorers(t,'a')),
+    last_events:JSON.stringify(buildLastEvents(t,MATCH.period)),
+    status:status||(MATCH.period===1?'first_half':'second_half')});
+}
+function resetLive(home,away,awayCol){sbPatch({updated_at:new Date().toISOString(),home_goals:0,home_points:0,home_free_goals:0,home_free_points:0,home_2pt:0,away_goals:0,away_points:0,away_free_goals:0,away_free_points:0,away_2pt:0,clock_seconds:0,period:1,home_team:home||'Bray Emmets',away_team:away||'Opposition',away_color:awayCol||'#f0c040',home_scorers:'[]',away_scorers:'[]',last_events:'[]',status:'first_half',match_info:JSON.stringify({comp:MATCH.comp,round:MATCH.round,venue:MATCH.venue,weather:MATCH.weather,referee:MATCH.referee,date:new Date().toISOString().slice(0,10)})})}
+
+// ── TAGGER (PORTRAIT) — SINGLE/DOUBLE TAP + UNDO ──
+function TaggerScreen({nav}){
+  const [clock,setClock]=useState(MATCH.clock);const [running,setRunning]=useState(false);const [period,setPeriod]=useState(MATCH.period);
+  const [score,setScore]=useState(MATCH.score);
+  const [activeEv,setActiveEv]=useState(null);const [activeTeam,setActiveTeam]=useState(null);
+  const [pendingLoc,setPendingLoc]=useState(null);
+  const [pendingOutcome,setPendingOutcome]=useState(null);
+  const squad=MATCH.squad||[];
+  const [tagged,setTagged]=useState(MATCH.tagged);const [flash,setFlash]=useState(null);
+  const [showQuickStats,setShowQuickStats]=useState(false);
+  const [undoStack,setUndoStack]=useState([]);
+  const iv=useRef(null);
+  const tapTimers=useRef({});
+
+  // Sync live state to MATCH store so half time / full time screens read real data
+  useEffect(()=>{MATCH.tagged=tagged;MATCH.score=score;MATCH.clock=clock;MATCH.period=period;},[tagged,score,clock,period]);
+
+  useEffect(()=>{
+    if(running)iv.current=setInterval(()=>setClock(c=>c+1),1000);
+    else clearInterval(iv.current);
+    return()=>clearInterval(iv.current);
+  },[running]);
+
+  const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  const displayClock=s=>fmt(period===2?s+1800:s);
+  const sc=t=>`${score[t].g}-${String(score[t].p).padStart(2,"0")}`;
+  const total=t=>score[t].g*3+score[t].p;
+  const gaaNotation=t=>{const s=score[t];return `${s.g}-${String(s.p).padStart(2,"0")} (${s.fg}-${String(s.fp).padStart(2,"0")})`};
+
+  function handleEventTap(ev){
+    const eid=ev.id;
+    if(tapTimers.current[eid]){clearTimeout(tapTimers.current[eid]);tapTimers.current[eid]=null;activateEvent(ev,"a")}
+    else{tapTimers.current[eid]=setTimeout(()=>{tapTimers.current[eid]=null;activateEvent(ev,"h")},300)}
+  }
+  function activateEvent(ev,team){
+    if(pendingOutcome&&activeEv){commitEvent(null)}
+    if(activeEv?.id===ev.id&&activeTeam===team&&!pendingOutcome){setActiveEv(null);setActiveTeam(null);setPendingLoc(null);return}
+    setActiveEv(ev);setActiveTeam(team);setPendingLoc(null);setPendingOutcome(null);
+  }
+  function selectOutcome(outcome){
+    if(!activeEv||!activeTeam)return;
+    if(activeEv.pitch&&!pendingLoc){setFlash("Tap pitch first");setTimeout(()=>setFlash(null),1500);return}
+    const t=activeTeam;const isFree=activeEv.id==="free";
+    let dg=0,dp=0,dfg=0,dfp=0;
+    if((outcome==="Point"||outcome==="2-Pointer")&&(activeEv.id==="shot"||isFree)){dp=outcome==="2-Pointer"?2:1;if(isFree)dfp=dp}
+    if(outcome==="Goal"&&(activeEv.id==="shot"||isFree)){dg=1;if(isFree)dfg=1}
+    if(dg||dp)setScore(s=>({...s,[t]:{g:s[t].g+dg,p:s[t].p+dp,fg:s[t].fg+dfg,fp:s[t].fp+dfp}}));
+    setUndoStack(prev=>[...prev,{team:t,dg,dp,dfg,dfp}]);
+    setPendingOutcome(outcome);
+    setFlash(`${t==="h"?"HOME":"OPP"} ${activeEv.l}: ${outcome} — tap #`);
+    setTimeout(()=>setFlash(null),2000);
+  }
+  function commitEvent(playerNum){
+    if(!activeEv||!pendingOutcome)return;
+    setTagged(prev=>{const n=[{id:Date.now(),ev:activeEv.id,evL:activeEv.l,outcome:pendingOutcome,team:activeTeam,loc:pendingLoc,time:period===2?clock+1800:clock,period,player:playerNum||null},...prev];MATCH.tagged=n;setTimeout(()=>syncLive(),50);return n});
+    setFlash(`✓ ${activeTeam==="h"?"HOME":"OPP"} ${activeEv.l} — ${pendingOutcome}${playerNum?(activeTeam==="h"&&SQUAD_NAMES[playerNum]?` ${SQUAD_NAMES[playerNum]}`:` #${playerNum}`):""}`);
+    setTimeout(()=>setFlash(null),1200);
+    setActiveEv(null);setActiveTeam(null);setPendingLoc(null);setPendingOutcome(null);
+  }
+  function undoLast(){
+    if(tagged.length===0)return;const last=tagged[0];
+    const u=undoStack[undoStack.length-1];
+    if(u){setScore(s=>({...s,[u.team]:{g:s[u.team].g-u.dg,p:s[u.team].p-u.dp,fg:s[u.team].fg-u.dfg,fp:s[u.team].fp-u.dfp}}));setUndoStack(prev=>prev.slice(0,-1))}
+    setTagged(prev=>{const n=prev.slice(1);MATCH.tagged=n;setTimeout(()=>syncLive(),50);return n});setFlash(`↩ Undid: ${last.evL} ${last.outcome}`);setTimeout(()=>setFlash(null),1500);
+  }
+  function evBtnStyle(ev){
+    const isActive=activeEv?.id===ev.id;
+    if(!isActive)return{background:C.bgCard,border:`1px solid ${C.border}`,color:C.white};
+    return{background:activeTeam==="h"?C.blue:C.gold,border:`1px solid ${activeTeam==="h"?C.blue:C.gold}`,color:"#000"};
+  }
+
+  // ── LANDSCAPE GAA PITCH (goals left & right — matches what you see pitchside) ──
+  // Official geometry: 13m/20m/45m/65m lines; D = 13m arc off 20m line; 2-pt arc = 40m from goal (just inside the 45)
+  function GaaPitch(){
+    const W=360,H=220;
+    const L=8,R=352,T=8,B=212,MX=180,MY=110;
+    // Length fractions (140m pitch): 13m=.093 20m=.143 45m=.321 65m=.464
+    const PL=R-L;
+    const L13=L+0.093*PL,L20=L+0.143*PL,L45=L+0.321*PL,L65=L+0.464*PL;
+    const R13=R-0.093*PL,R20=R-0.143*PL,R45=R-0.321*PL,R65=R-0.464*PL;
+    const GI=40,GO=58,GD=9; // goal mouth, large rect width, depth
+    const LN="rgba(255,255,255,0.55)",LN2="rgba(255,255,255,0.3)",LN3="rgba(255,255,255,0.18)";
+    return <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"100%",display:"block",cursor:activeEv?.pitch&&!pendingOutcome?"crosshair":"default"}}
+      onClick={e=>{if(!activeEv?.pitch||pendingOutcome)return;const r=e.currentTarget.getBoundingClientRect();setPendingLoc({x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height})}}>
+      <rect x="0" y="0" width={W} height={H} fill={C.bg}/>
+      <rect x={L} y={T} width={R-L} height={B-T} fill="none" stroke={LN} strokeWidth="2" rx="2"/>
+      {/* Halfway (no centre circle) */}
+      <line x1={MX} y1={T} x2={MX} y2={B} stroke={LN2} strokeWidth="1.5" strokeDasharray="8,5"/>
+      {/* 13m / 20m / 45m / 65m lines both ends */}
+      <line x1={L13} y1={T} x2={L13} y2={B} stroke={LN3} strokeWidth="0.8"/>
+      <line x1={R13} y1={T} x2={R13} y2={B} stroke={LN3} strokeWidth="0.8"/>
+      <line x1={L20} y1={T} x2={L20} y2={B} stroke={LN} strokeWidth="1.5"/>
+      <line x1={R20} y1={T} x2={R20} y2={B} stroke={LN} strokeWidth="1.5"/>
+      <line x1={L45} y1={T} x2={L45} y2={B} stroke={LN2} strokeWidth="1" strokeDasharray="6,4"/>
+      <line x1={R45} y1={T} x2={R45} y2={B} stroke={LN2} strokeWidth="1" strokeDasharray="6,4"/>
+      <line x1={L65} y1={T} x2={L65} y2={B} stroke={LN3} strokeWidth="0.8" strokeDasharray="4,6"/>
+      <line x1={R65} y1={T} x2={R65} y2={B} stroke={LN3} strokeWidth="0.8" strokeDasharray="4,6"/>
+      {/* Goal rectangles */}
+      <rect x={L} y={MY-GI/2} width={GD} height={GI} fill="none" stroke={LN} strokeWidth="1.5"/>
+      <rect x={L} y={MY-GO/2} width={GD+9} height={GO} fill="none" stroke={LN2} strokeWidth="1.2"/>
+      <rect x={R-GD} y={MY-GI/2} width={GD} height={GI} fill="none" stroke={LN} strokeWidth="1.5"/>
+      <rect x={R-GD-9} y={MY-GO/2} width={GD+9} height={GO} fill="none" stroke={LN2} strokeWidth="1.2"/>
+      {/* Small D — 13m arc off the 20m line */}
+      <path d={`M${L20},${MY-26} Q${L+0.33*PL},${MY} ${L20},${MY+26}`} fill="none" stroke={LN} strokeWidth="1.3"/>
+      <path d={`M${R20},${MY-26} Q${R-0.33*PL},${MY} ${R20},${MY+26}`} fill="none" stroke={LN} strokeWidth="1.3"/>
+      {/* BIG 40m arc — sideline to sideline, apex just inside the 45 */}
+      <path d={`M${L13},${T+4} Q${L+0.48*PL},${MY} ${L13},${B-4}`} fill="none" stroke={LN} strokeWidth="2"/>
+      <path d={`M${R13},${T+4} Q${R-0.48*PL},${MY} ${R13},${B-4}`} fill="none" stroke={LN} strokeWidth="2"/>
+      {/* Goalposts H-shape */}
+      <line x1={L-2} y1={MY-16} x2={L-2} y2={MY+16} stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+      <line x1={R+2} y1={MY-16} x2={R+2} y2={MY+16} stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+      {/* Tagged event dots with schematic leader lines */}
+      {tagged.filter(t=>t.loc).slice(0,40).map(t=>{
+        const cx=t.loc.x*W,cy=t.loc.y*H;
+        const isScore=["Point","2-Pointer"].includes(t.outcome);
+        const isGoal=t.outcome==="Goal";
+        const isMiss=!isScore&&!isGoal;
+        const col=isGoal?NEON.purple:isScore?NEON.green:NEON.red;
+        const goalX=cx<MX?L-2:R+2;
+        const wideOff=cy<MY?-26:26;
+        const ly2=isMiss?MY+wideOff:MY;
+        return <g key={t.id}>
+          <line x1={cx} y1={cy} x2={cx+(goalX-cx)*0.3} y2={cy+(ly2-cy)*0.3} stroke={col} strokeWidth="1" opacity="0.45" strokeDasharray="3,3"/>
+          <circle cx={cx} cy={cy} r="6" fill={col} opacity="0.15"/>
+          <circle cx={cx} cy={cy} r="4" fill={col} stroke="#fff" strokeWidth="0.8"/>
+        </g>
+      })}
+      {pendingLoc&&<>
+        <circle cx={pendingLoc.x*W} cy={pendingLoc.y*H} r="8" fill={activeTeam==="h"?C.blue:C.gold} stroke="#fff" strokeWidth="2" opacity="0.9"/>
+        <circle cx={pendingLoc.x*W} cy={pendingLoc.y*H} r="14" fill="none" stroke={activeTeam==="h"?C.blue:C.gold} strokeWidth="1" opacity="0.4"/>
+      </>}
+      {activeEv?.pitch&&!pendingLoc&&!pendingOutcome&&<text x={MX} y={MY-30} fill={activeTeam==="h"?C.blue:C.gold} fontSize="11" fontFamily="monospace" textAnchor="middle" opacity="0.7">TAP PITCH</text>}
+    </svg>
+  }
+
+  // Quick Stats Overlay
+  if(showQuickStats){
+    const hShots=tagged.filter(t=>t.team==="h"&&(t.ev==="shot"||t.ev==="free"));
+    const aShots=tagged.filter(t=>t.team==="a"&&(t.ev==="shot"||t.ev==="free"));
+    const hScores=hShots.filter(t=>["Point","2-Pointer","Goal"].includes(t.outcome)).length;
+    const aScores=aShots.filter(t=>["Point","2-Pointer","Goal"].includes(t.outcome)).length;
+    const hWides=hShots.filter(t=>t.outcome==="Wide").length;const aWides=aShots.filter(t=>t.outcome==="Wide").length;
+    const hPL=tagged.filter(t=>t.team==="h"&&t.ev==="poss_lost").length;const aPL=tagged.filter(t=>t.team==="a"&&t.ev==="poss_lost").length;
+    const hKO=tagged.filter(t=>t.team==="h"&&t.ev==="kickout");const aKO=tagged.filter(t=>t.team==="a"&&t.ev==="kickout");
+    const hKOWon=hKO.filter(t=>["Won Clean","Break Won"].includes(t.outcome)).length;const aKOWon=aKO.filter(t=>["Won Clean","Break Won"].includes(t.outcome)).length;
+    const hConv=hShots.length?Math.round(hScores/hShots.length*100):0;const aConv=aShots.length?Math.round(aScores/aShots.length*100):0;
+    const qs=[{l:"Shots",h:hShots.length,a:aShots.length},{l:"Scores",h:hScores,a:aScores},{l:"Conversion",h:`${hConv}%`,a:`${aConv}%`},{l:"Wides",h:hWides,a:aWides},{l:"Own KO Won",h:`${hKOWon}/${hKO.length}`,a:`${aKOWon}/${aKO.length}`},{l:"Turnovers",h:hPL,a:aPL}];
+    return <div style={{minHeight:"100vh",background:C.bg,color:C.white,fontFamily:"Inter,-apple-system,system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"16px 20px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{fontSize:10,fontFamily:"monospace",letterSpacing:3,color:C.blue}}>QUICK STATS — {displayClock(clock)}</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,marginTop:10}}>
+          <div><div style={{fontSize:9,color:C.blue,fontFamily:"monospace"}}>BRAY EMMETS</div><div style={{fontSize:22,fontWeight:900,fontFamily:"monospace"}}>{gaaNotation("h")}</div></div>
+          <div style={{fontSize:10,color:C.slate}}>vs</div>
+          <div><div style={{fontSize:9,color:C.gold,fontFamily:"monospace"}}>OPPOSITION</div><div style={{fontSize:22,fontWeight:900,fontFamily:"monospace"}}>{gaaNotation("a")}</div></div>
+        </div>
+      </div>
+      <div style={{flex:1,padding:16}}>
+        {qs.map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+          <div style={{flex:1,textAlign:"center",fontSize:16,fontWeight:700,fontFamily:"monospace",color:C.blue}}>{s.h}</div>
+          <div style={{flex:1.5,textAlign:"center",fontSize:11,color:C.slate,fontFamily:"monospace"}}>{s.l}</div>
+          <div style={{flex:1,textAlign:"center",fontSize:16,fontWeight:700,fontFamily:"monospace",color:C.gold}}>{s.a}</div>
+        </div>)}
+      </div>
+      <div style={{padding:16,display:"flex",gap:8}}>
+        <Btn onClick={()=>setShowQuickStats(false)} style={{flex:2}}>RESUME TAGGING</Btn>
+        <button onClick={()=>{setShowQuickStats(false);MATCH.tagged=tagged;MATCH.score=score;if(period===1){MATCH.period=2;MATCH.clock=0;syncLive("half_time");setRunning(false);nav("halftime")}else{syncLive("full_time");setRunning(false);nav("fulltime")}}} style={{flex:1,padding:12,background:"transparent",border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,cursor:"pointer",fontSize:11,fontFamily:"monospace",fontWeight:700}}>{period===1?"HALF TIME":"FULL TIME"}</button>
+      </div>
+    </div>
+  }
+
+  const tc=activeTeam==="h"?C.blue:activeTeam==="a"?C.gold:C.slate;
+
+  // Pitch shows only when a pitch-event is active and location not yet set
+  const showPitch=activeEv?.pitch&&!pendingLoc&&!pendingOutcome;
+  // Outcomes show when event selected and (no pitch needed OR location already set)
+  const showOutcomes=activeEv&&activeEv.outcomes.length>0&&!pendingOutcome&&((!activeEv.pitch)||pendingLoc);
+  const showSubOff=activeEv?.id==="sub"&&!pendingOutcome;
+
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.white,fontFamily:"Inter,-apple-system,system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
+    {/* Score bar */}
+    <div style={{background:"linear-gradient(90deg,#0a1628,#0d1f3c)",padding:"8px 14px",display:"flex",alignItems:"center",borderBottom:`1px solid ${C.border}`}}>
+      <div style={{flex:1,textAlign:"center"}}>
+        <div style={{fontSize:9,color:C.blue,fontFamily:"monospace",letterSpacing:1}}>BRAY EMMETS</div>
+        <div style={{fontSize:18,fontWeight:900,fontFamily:"monospace"}}>{sc("h")} <span style={{fontSize:10,color:C.slate}}>({total("h")})</span></div>
+      </div>
+      <div style={{textAlign:"center",padding:"0 12px",cursor:"pointer"}} onClick={()=>setShowQuickStats(true)}>
+        <div onClick={e=>{e.stopPropagation();setRunning(r=>!r)}} style={{fontSize:20,fontFamily:"monospace",fontWeight:900,color:running?C.greenB:C.slate,cursor:"pointer"}}>{displayClock(clock)}</div>
+        <div style={{fontSize:8,fontFamily:"monospace",color:running?C.greenB:C.slate}}>{running?"● LIVE":"⏸ TAP TO START"}</div>
+        <div style={{fontSize:8,fontFamily:"monospace",color:C.blue,marginTop:1}}>{period===1?"1ST HALF":"2ND HALF"}</div>
+      </div>
+      <div style={{flex:1,textAlign:"center"}}>
+        <div style={{fontSize:9,color:C.gold,fontFamily:"monospace",letterSpacing:1}}>OPPOSITION</div>
+        <div style={{fontSize:18,fontWeight:900,fontFamily:"monospace"}}>{sc("a")} <span style={{fontSize:10,color:C.slate}}>({total("a")})</span></div>
+      </div>
+    </div>
+
+    {/* Tap hint + undo */}
+    <div style={{padding:"4px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{display:"flex",gap:14}}>
+        <span style={{fontSize:9,fontFamily:"monospace",color:C.blue}}>● TAP = HOME</span>
+        <span style={{fontSize:9,fontFamily:"monospace",color:C.gold}}>●● DBL = OPP</span>
+      </div>
+      <button onClick={undoLast} disabled={tagged.length===0} style={{fontSize:9,fontFamily:"monospace",color:tagged.length?C.red:C.slate,background:"none",border:"none",cursor:tagged.length?"pointer":"default",opacity:tagged.length?1:0.3,padding:"2px 8px"}}>↩ UNDO</button>
+    </div>
+
+    {flash&&<div style={{background:flash.startsWith("✓")?C.green:flash.startsWith("↩")?`${C.red}88`:flash.startsWith("Tap")?`${C.red}cc`:`${C.navy}ee`,padding:"5px",textAlign:"center",fontSize:10,fontFamily:"monospace",color:C.white}}>{flash}</div>}
+
+    {/* Event buttons — horizontal row */}
+    <div style={{display:"flex",gap:4,padding:"6px 8px"}}>
+      {EVENTS.map(ev=>{const s=evBtnStyle(ev);return <button key={ev.id} onClick={()=>handleEventTap(ev)} style={{flex:1,padding:"12px 2px",...s,borderRadius:8,cursor:"pointer",fontSize:10,fontWeight:700,fontFamily:"monospace",textAlign:"center",transition:"all 0.15s"}}>{ev.l}</button>})}
+    </div>
+
+    {/* Main content area — changes based on state */}
+    <div style={{flex:1,display:"flex",flexDirection:"column",padding:"0 8px",minHeight:0,overflow:"auto"}}>
+
+      {/* PITCH — only visible when a pitch-event needs a location */}
+      {showPitch&&<div style={{padding:"4px 0"}}>
+        <div style={{borderRadius:10,overflow:"hidden",border:`1px solid ${C.border}`,aspectRatio:"360/220"}}>
+          <GaaPitch/>
+        </div>
+      </div>}
+
+      {/* OUTCOMES — show when event selected and (no pitch needed OR location set) */}
+      {showOutcomes&&<div style={{padding:"8px 0"}}>
+        <div style={{fontSize:9,fontFamily:"monospace",color:tc,marginBottom:6,textAlign:"center"}}>{activeTeam==="h"?"HOME":"OPP"} — {activeEv.l.toUpperCase()} {pendingLoc?"@ LOCATION SET":""}  — SELECT OUTCOME</div>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(activeEv.outcomes.length,3)},1fr)`,gap:6}}>
+          {activeEv.outcomes.map(o=><button key={o} onClick={()=>selectOutcome(o)} style={{padding:"14px 4px",background:C.bgCard,border:`1px solid ${tc}44`,borderRadius:10,color:tc,cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"monospace"}}>{o}</button>)}
+        </div>
+      </div>}
+
+      {/* SUB — player off picker */}
+      {showSubOff&&<div style={{padding:"8px 0"}}>
+        <div style={{fontSize:9,fontFamily:"monospace",color:tc,marginBottom:6,textAlign:"center"}}>{activeTeam==="h"?"HOME":"OPP"} — SUB: TAP PLAYER COMING OFF</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5}}>
+          {Array.from({length:15},(_,i)=>{const num=i+1;return <button key={i} onClick={()=>setPendingOutcome(`#${num} off`)} style={{padding:"14px 2px",background:`${tc}11`,border:`1px solid ${tc}44`,borderRadius:8,color:tc,cursor:"pointer",fontSize:15,fontWeight:700,fontFamily:"monospace",textAlign:"center"}}>{num}</button>})}
+        </div>
+      </div>}
+
+      {/* PLAYER NUMBERS — show when waiting for player attribution */}
+      {pendingOutcome&&(()=>{
+        const koLost=activeEv?.id==="kickout"&&(pendingOutcome==="Lost Clean"||pendingOutcome==="Break Lost");
+        const attrTeam=koLost?(activeTeam==="h"?"a":"h"):activeTeam;
+        const attrLabel=attrTeam==="h"?"HOME":"OPP";
+        const attrCol=attrTeam==="h"?C.blue:C.gold;
+        return <div style={{padding:"8px 0"}}>
+        <div style={{fontSize:9,fontFamily:"monospace",color:attrCol,marginBottom:6,textAlign:"center"}}>{attrLabel} — {koLost?"KICKOUT LOST — WHO WON IT?":`${activeEv?.l}: ${pendingOutcome}`} — {activeEv?.id==="sub"?"TAP PLAYER COMING ON":"TAP PLAYER # OR NEXT EVENT"}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5}}>
+          {attrTeam==="h"
+            ?squad.filter(s=>s.pid).map((s,i)=>{const pl=PANEL.find(p=>p.id===s.pid);const num=pl?.num||(i+1);const short=pl?pl.n.split(' ').pop():'';return <button key={i} onClick={()=>commitEvent(num)} style={{padding:"8px 2px",background:`${attrCol}11`,border:`1px solid ${attrCol}44`,borderRadius:8,color:attrCol,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:14,fontWeight:700,fontFamily:"monospace"}}>{num}</div><div style={{fontSize:7,fontFamily:"monospace",marginTop:2,opacity:0.8}}>{short}</div></button>})
+            :Array.from({length:15},(_,i)=>{const num=i+1;return <button key={i} onClick={()=>commitEvent(num)} style={{padding:"14px 2px",background:`${attrCol}11`,border:`1px solid ${attrCol}44`,borderRadius:8,color:attrCol,cursor:"pointer",fontSize:15,fontWeight:700,fontFamily:"monospace",textAlign:"center"}}>{num}</button>})}
+        </div>
+      </div>})()}
+
+      {/* IDLE STATE — no event active, show event feed */}
+      {!activeEv&&!pendingOutcome&&<div style={{padding:"8px 0",flex:1}}>
+        {tagged.length===0?<div style={{textAlign:"center",padding:"40px 0"}}>
+          <div style={{fontSize:28,marginBottom:12}}>🎯</div>
+          <div style={{fontSize:13,color:C.slate,fontFamily:"monospace"}}>TAP AN EVENT TO START TAGGING</div>
+          <div style={{fontSize:10,color:C.slate,fontFamily:"monospace",marginTop:6}}>Single tap = Home · Double tap = Opposition</div>
+        </div>:
+        <div>
+          <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:8}}>EVENT FEED — {tagged.length} TAGGED</div>
+          <div style={{maxHeight:300,overflowY:"auto"}}>
+            {tagged.slice(0,12).map(t=><div key={t.id} style={{padding:"8px 12px",marginBottom:3,background:C.bgCard,borderRadius:6,borderLeft:`3px solid ${t.team==="h"?C.blue:C.gold}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:11,fontFamily:"monospace",color:C.white}}><span style={{color:C.slate}}>{fmt(t.time)}</span> {t.evL}</div>
+              <div style={{fontSize:11,fontFamily:"monospace",fontWeight:700,color:["Point","2-Pointer","Goal"].includes(t.outcome)?NEON.green:t.outcome==="Wide"?NEON.red:C.slate}}>{t.outcome}{t.player?` #${t.player}`:""}</div>
+            </div>)}
+          </div>
+        </div>}
+      </div>}
+    </div>
+
+    {/* Bottom bar */}
+    <div style={{padding:"8px 12px",borderTop:`1px solid ${C.border}`,display:"flex",gap:8}}>
+      <button onClick={()=>{if(pendingOutcome&&activeEv)commitEvent(null);MATCH.tagged=tagged;MATCH.score=score;if(period===1){MATCH.period=2;MATCH.clock=0;syncLive("half_time");setRunning(false);nav("halftime")}else{syncLive("full_time");setRunning(false);nav("fulltime")}}} style={{flex:2,padding:"12px",background:"linear-gradient(90deg,#1e5c38,#152d52)",border:`1px solid ${C.greenB}`,borderRadius:10,color:C.white,cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"monospace"}}>{period===1?"HALF TIME":"FULL TIME"}</button>
+      <button onClick={()=>nav("home")} style={{flex:1,padding:"12px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.slate,cursor:"pointer",fontSize:12,fontFamily:"monospace"}}>EXIT</button>
+    </div>
+  </div>
+}
+
+// ── HALF TIME / FULL TIME STATS — computed live from MATCH store ──
+function StatsScreen({nav,isFullTime=false}){
+  const ev=MATCH.tagged;
+  const score=MATCH.score;
+  const fmtGAA=s=>`${s.g}-${String(s.p).padStart(2,"0")} (${s.fg}-${String(s.fp).padStart(2,"0")})`;
+  const isScoreOutcome=o=>["Point","2-Pointer","Goal"].includes(o);
+  const ptVal=o=>o==="Goal"?3:o==="2-Pointer"?2:o==="Point"?1:0;
+
+  // Per-team computed stats
+  const T=t=>{
+    const shots=ev.filter(e=>e.team===t&&(e.ev==="shot"||e.ev==="free"));
+    const scores=shots.filter(e=>isScoreOutcome(e.outcome));
+    const fromPlay=ev.filter(e=>e.team===t&&e.ev==="shot"&&isScoreOutcome(e.outcome));
+    const frees=ev.filter(e=>e.team===t&&e.ev==="free");
+    const freeScores=frees.filter(e=>isScoreOutcome(e.outcome));
+    const ko=ev.filter(e=>e.team===t&&e.ev==="kickout");
+    const koWon=ko.filter(e=>["Won Clean","Break Won"].includes(e.outcome));
+    const to=ev.filter(e=>e.team===t&&e.ev==="poss_lost");
+    const tk=ev.filter(e=>e.team===t&&e.ev==="tackle"&&e.outcome==="Won");
+    const wides=shots.filter(e=>e.outcome==="Wide");
+    const yc=ev.filter(e=>e.team===t&&e.ev==="booking"&&e.outcome==="Yellow");
+    const bc=ev.filter(e=>e.team===t&&e.ev==="booking"&&e.outcome==="Black");
+    const fpG=fromPlay.filter(e=>e.outcome==="Goal").length;
+    const fpP=fromPlay.reduce((a,e)=>a+(e.outcome==="Goal"?0:ptVal(e.outcome)),0);
+    return {shots,scores,frees,freeScores,ko,koWon,to,tk,wides,yc,bc,fpG,fpP,
+      conv:shots.length?Math.round(scores.length/shots.length*100):0};
+  };
+  const h=T("h"),a=T("a");
+
+  // Estimated possessions from event chain: kickouts, turnovers, tackles and shots flip/end possession
+  const poss=(()=>{
+    const sorted=[...ev].sort((x,y)=>x.time-y.time);
+    let cur=null;const count={h:0,a:0};const shotsIn={h:0,a:0};
+    const start=t=>{if(t!==cur){cur=t;count[t]++}};
+    sorted.forEach(e=>{
+      const other=e.team==="h"?"a":"h";
+      if(e.ev==="kickout"){start(["Won Clean","Break Won"].includes(e.outcome)?e.team:other)}
+      else if(e.ev==="shot"||e.ev==="free"){if(cur!==e.team)start(e.team);shotsIn[e.team]++;cur=null}
+      else if(e.ev==="poss_lost"){if(cur!==e.team)count[e.team]++;start(other)}
+    });
+    return {count,shotsIn,
+      rate:t=>count[t]?Math.round(shotsIn[t]/count[t]*100):0};
+  })();
+
+  // Scorers grouped by player number
+  const scorers=t=>{
+    const m={};
+    ev.filter(e=>e.team===t&&isScoreOutcome(e.outcome)).forEach(e=>{
+      const k=e.player?`#${e.player}`:"Unattributed";
+      m[k]=m[k]||{g:0,p:0,fg:0,fp:0};
+      if(e.outcome==="Goal"){m[k].g++;if(e.ev==="free")m[k].fg++}
+      else{const v=ptVal(e.outcome);m[k].p+=v;if(e.ev==="free")m[k].fp+=v}
+    });
+    return Object.entries(m).map(([n,s])=>({n,...s})).sort((x,y)=>(y.g*3+y.p)-(x.g*3+x.p));
+  };
+  const hScorers=scorers("h"),aScorers=scorers("a");
+
+  // Turnover leaderboard
+  const toBoard=(()=>{
+    const m={};
+    ev.filter(e=>e.ev==="poss_lost").forEach(e=>{
+      const k=`${e.team}|${e.player?`#${e.player}`:"Unattributed"}`;
+      m[k]=(m[k]||0)+1;
+    });
+    return Object.entries(m).map(([k,count])=>{const[team,n]=k.split("|");return{team,n,count}}).sort((x,y)=>y.count-x.count).slice(0,8);
+  })();
+
+  // Score timeline (cumulative points)
+  const timeline=(()=>{
+    const scoring=ev.filter(e=>isScoreOutcome(e.outcome)).sort((x,y)=>x.time-y.time);
+    let ch=0,ca=0;
+    return scoring.map(e=>{
+      const v=ptVal(e.outcome);
+      if(e.team==="h")ch+=v;else ca+=v;
+      return{m:Math.floor(e.time/60),h:ch,a:ca};
+    });
+  })();
+  const maxMin=Math.max(isFullTime?60:30,...timeline.map(t=>t.m),1);
+  const maxPts=Math.max(...timeline.map(t=>Math.max(t.h,t.a)),1);
+
+  // Shot map: fold tagger coords (vertical pitch, y=long axis) onto one goal
+  const shotDots=ev.filter(e=>(e.ev==="shot"||e.ev==="free")&&e.loc).map(e=>{
+    const tx=e.loc.x,ty=e.loc.y;
+    let ax,side;
+    if(tx>0.5){ax=tx;side=ty}else{ax=1-tx;side=1-ty}
+    const code=e.outcome==="Goal"?"G":e.outcome==="2-Pointer"?"2":e.outcome==="Point"?"P":e.outcome==="Wide"?"W":"S";
+    return{team:e.team,d:[ax,side,code]};
+  });
+
+  const stats=[
+    {l:"Possessions (est)",h:poss.count.h,a:poss.count.a},
+    {l:"Shot per Possession",h:`${poss.rate("h")}%`,a:`${poss.rate("a")}%`},
+    {l:"Scoring Chances",h:h.shots.length,a:a.shots.length},
+    {l:"Conversion Rate",h:`${h.conv}%`,a:`${a.conv}%`},
+    {l:"Scores From Play",h:`${h.fpG}-${String(h.fpP).padStart(2,"0")}`,a:`${a.fpG}-${String(a.fpP).padStart(2,"0")}`},
+    {l:"Frees Converted",h:`${h.freeScores.length}/${h.frees.length}`,a:`${a.freeScores.length}/${a.frees.length}`},
+    {l:"Own Kickouts Won",h:`${h.koWon.length}/${h.ko.length}`,a:`${a.koWon.length}/${a.ko.length}`},
+    {l:"Turnovers",h:h.to.length,a:a.to.length},
+    {l:"Tackles Won",h:h.tk.length,a:a.tk.length},
+    {l:"Wides",h:h.wides.length,a:a.wides.length},
+    {l:"Yellow Cards",h:h.yc.length,a:a.yc.length},
+    {l:"Black Cards",h:h.bc.length,a:a.bc.length},
+  ];
+
+  // Template AI summary from real numbers
+  const lead=score.h.g*3+score.h.p-(score.a.g*3+score.a.p);
+  const aiLines=[];
+  if(h.ko.length>=3)aiLines.push({c:h.koWon.length/h.ko.length>=0.7?C.greenB:C.red,t:`Kickout retention at ${Math.round(h.koWon.length/Math.max(h.ko.length,1)*100)}% (${h.koWon.length}/${h.ko.length}).`});
+  if(h.wides.length>=2)aiLines.push({c:C.gold,t:`${h.wides.length} wides — tighten shot selection inside the scoring zone.`});
+  if(a.to.length>=3)aiLines.push({c:C.greenB,t:`Opposition coughing it up ${a.to.length} times — keep the press on.`});
+  if(h.to.length>=3)aiLines.push({c:C.red,t:`${h.to.length} turnovers conceded — mind possession in contact.`});
+  if(aiLines.length===0)aiLines.push({c:C.slate,t:"Tag more events to unlock tactical insights."});
+
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.white,fontFamily:"Inter,-apple-system,system-ui,sans-serif",paddingBottom:40}}>
+    <div style={{background:isFullTime?"linear-gradient(90deg,#1a0a0a,#0a1020)":"linear-gradient(90deg,#0a1628,#0d1f3c)",padding:"14px 16px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>
+      <div style={{fontSize:10,fontFamily:"monospace",letterSpacing:3,color:isFullTime?C.gold:C.blue}}>{isFullTime?"FULL TIME":"HALF TIME"}</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:8}}>
+        <div style={{textAlign:"center"}}>
+          <MJ col1={HOME_C1} col2={HOME_C2} size={28}/>
+          <div style={{fontSize:9,color:C.blue,fontFamily:"monospace",marginTop:4}}>BRAY EMMETS</div>
+          <div style={{fontSize:20,fontWeight:900,fontFamily:"monospace"}}>{fmtGAA(score.h)}</div>
+        </div>
+        <div style={{fontSize:10,color:C.slate,fontFamily:"monospace"}}>vs</div>
+        <div style={{textAlign:"center"}}>
+          <MJ col1="#c4342d" col2="#fff" size={28}/>
+          <div style={{fontSize:9,color:C.gold,fontFamily:"monospace",marginTop:4}}>OPPOSITION</div>
+          <div style={{fontSize:20,fontWeight:900,fontFamily:"monospace"}}>{fmtGAA(score.a)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style={{padding:"12px 16px",maxWidth:480,margin:"0 auto"}}>
+      {ev.length===0&&<div style={{textAlign:"center",padding:"30px 0",color:C.slate,fontFamily:"monospace",fontSize:11}}>NO EVENTS TAGGED YET — STATS BUILD AS YOU TAG</div>}
+
+      {timeline.length>0&&<>
+      <SL>SCORE TIMELINE</SL>
+      <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+        <svg viewBox="0 0 300 100" style={{width:"100%",height:100}}>
+          {[0,0.5,1].map((f,i)=><line key={i} x1="30" y1={10+f*75} x2="295" y2={10+f*75} stroke={C.border} strokeWidth="0.5"/>)}
+          {[0,maxPts].map((v,i)=><text key={i} x="25" y={85-((v/maxPts)*75)+3} fill={C.slate} fontSize="7" fontFamily="monospace" textAnchor="end">{v}</text>)}
+          <polyline fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={["30,85",...timeline.map(t=>`${30+(t.m/maxMin)*265},${85-(t.h/maxPts)*75}`)].join(" ")}/>
+          <polyline fill="none" stroke={C.gold} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={["30,85",...timeline.map(t=>`${30+(t.m/maxMin)*265},${85-(t.a/maxPts)*75}`)].join(" ")}/>
+          {timeline.map((t,i)=><g key={i}><circle cx={30+(t.m/maxMin)*265} cy={85-(t.h/maxPts)*75} r="2.5" fill={C.blue}/><circle cx={30+(t.m/maxMin)*265} cy={85-(t.a/maxPts)*75} r="2.5" fill={C.gold}/></g>)}
+        </svg>
+        <div style={{display:"flex",justifyContent:"center",gap:16,marginTop:4}}>
+          <span style={{fontSize:9,fontFamily:"monospace",color:C.blue}}>● Bray Emmets</span>
+          <span style={{fontSize:9,fontFamily:"monospace",color:C.gold}}>● Opposition</span>
+        </div>
+      </div>
+      </>}
+
+      {(hScorers.length>0||aScorers.length>0)&&<>
+      <SL>SCORERS</SL>
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        <div style={{flex:1,background:C.bgCard,borderRadius:10,border:`1px solid ${C.border}`,padding:12}}>
+          <div style={{fontSize:9,fontFamily:"monospace",color:C.blue,marginBottom:6}}>BRAY EMMETS</div>
+          {hScorers.map((s,i)=><div key={i} style={{fontSize:12,marginBottom:4}}>{s.n} <span style={{fontFamily:"monospace",fontWeight:700,color:C.greenB}}>{s.g}-{s.p}</span> <span style={{fontSize:10,color:C.slate}}>({s.fg}-{s.fp})</span></div>)}
+          {hScorers.length===0&&<div style={{fontSize:10,color:C.slate}}>—</div>}
+        </div>
+        <div style={{flex:1,background:C.bgCard,borderRadius:10,border:`1px solid ${C.border}`,padding:12}}>
+          <div style={{fontSize:9,fontFamily:"monospace",color:C.gold,marginBottom:6}}>OPPOSITION</div>
+          {aScorers.map((s,i)=><div key={i} style={{fontSize:12,marginBottom:4}}>{s.n} <span style={{fontFamily:"monospace",fontWeight:700,color:C.gold}}>{s.g}-{s.p}</span> <span style={{fontSize:10,color:C.slate}}>({s.fg}-{s.fp})</span></div>)}
+          {aScorers.length===0&&<div style={{fontSize:10,color:C.slate}}>—</div>}
+        </div>
+      </div>
+      </>}
+
+      <SL>MATCH STATISTICS</SL>
+      <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+        {stats.map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",padding:"8px 0",borderBottom:i<stats.length-1?`1px solid ${C.border}`:"none"}}>
+          <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:700,fontFamily:"monospace",color:C.blue}}>{s.h}</div>
+          <div style={{flex:1.5,textAlign:"center",fontSize:10,color:C.slate,fontFamily:"monospace"}}>{s.l}</div>
+          <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:700,fontFamily:"monospace",color:C.gold}}>{s.a}</div>
+        </div>)}
+      </div>
+
+      {toBoard.length>0&&<>
+      <SL>TURNOVER LEADERBOARD</SL>
+      <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+        <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:8}}>WHO IS GIVING THE BALL AWAY</div>
+        {toBoard.map((p,i)=>{const maxC=toBoard[0].count;return <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0"}}>
+          <div style={{width:16,fontSize:10,fontFamily:"monospace",color:C.slate,textAlign:"center"}}>{i+1}</div>
+          <div style={{flex:1,fontSize:12,fontWeight:i<3?700:400,color:p.team==="h"?C.blue:C.gold}}>{p.n} <span style={{fontSize:9,color:C.slate}}>{p.team==="h"?"BE":"OPP"}</span></div>
+          <div style={{width:80,height:8,background:C.bgDark,borderRadius:4,overflow:"hidden"}}><div style={{width:`${(p.count/maxC)*100}%`,height:"100%",background:C.red,borderRadius:4}}/></div>
+          <div style={{width:20,fontSize:11,fontWeight:700,fontFamily:"monospace",color:C.red,textAlign:"right"}}>{p.count}</div>
+        </div>})}
+      </div>
+      </>}
+
+      {shotDots.length>0&&<>
+      <SL>SHOT MAP — ALL ATTACKING TOP GOAL</SL>
+      <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+        <div style={{display:"flex",gap:8}}>
+          {[["BRAY EMMETS","h",C.blue],["OPPOSITION","a",C.gold]].map(([lbl,t,c])=><div key={t} style={{flex:1}}>
+            <div style={{fontSize:8,fontFamily:"monospace",color:c,textAlign:"center",marginBottom:4}}>{lbl}</div>
+            <div style={{borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`}}>
+              <SeasonPitch data={shotDots.filter(s=>s.team===t).map(s=>s.d)} mode="shots"/>
+            </div>
+          </div>)}
+        </div>
+        <div style={{display:"flex",justifyContent:"center",gap:16,marginTop:10}}>
+          {[["Score",NEON.green],["Goal",NEON.purple],["Miss",NEON.red]].map(([l,c])=><div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,fontFamily:"monospace",color:C.slate}}><div style={{width:8,height:8,borderRadius:"50%",background:c,boxShadow:`0 0 5px ${c}`}}/>{l}</div>)}
+        </div>
+      </div>
+      </>}
+
+      <SL>{isFullTime?"MATCH ANALYSIS":"TACTICAL GUIDANCE"}</SL>
+      <div style={{background:"linear-gradient(135deg,#0f3a25,#0a1e10)",borderRadius:12,border:`1px solid ${C.greenB}44`,padding:16,marginBottom:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+          <LogoIcon size={16}/>
+          <span style={{fontSize:10,fontFamily:"monospace",color:C.greenB,letterSpacing:2}}>AI SUMMARY</span>
+        </div>
+        <div style={{fontSize:13,lineHeight:1.8,color:C.white}}>
+          {isFullTime&&<div style={{marginBottom:8}}>{lead>0?`Won by ${lead}.`:lead<0?`Lost by ${-lead}.`:"Finished level."} {h.shots.length} chances at {h.conv}% conversion.</div>}
+          {aiLines.map((l,i)=><div key={i} style={{marginBottom:6}}><span style={{color:l.c,fontWeight:700}}>{i+1}.</span> {l.t}</div>)}
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:8}}>
+        {isFullTime?<>
+          <Btn onClick={()=>{
+            const rows=[["Event","Time","Period","Team","Type","Outcome","Player","LocX","LocY"]];
+            [...MATCH.tagged].reverse().forEach((e,i)=>rows.push([i+1,`${String(Math.floor(e.time/60)).padStart(2,"0")}:${String(e.time%60).padStart(2,"0")}`,e.period,e.team==="h"?"Bray Emmets":"Opposition",e.evL,e.outcome,e.player||"",e.loc?e.loc.x.toFixed(3):"",e.loc?e.loc.y.toFixed(3):""]));
+            const csv=rows.map(r=>r.join(",")).join("\n");
+            if(navigator.clipboard)navigator.clipboard.writeText(csv);
+          }} variant="secondary" style={{flex:1}}>⬇ COPY CSV</Btn>
+          <Btn onClick={()=>nav("home")} style={{flex:1}}>FINISH & SAVE</Btn>
+        </>:<>
+          <Btn onClick={()=>{syncLive("second_half");nav("tagger")}} style={{flex:2}}>RESUME — 2ND HALF →</Btn>
+          <Btn onClick={()=>nav("home")} variant="secondary" style={{flex:1}}>EXIT</Btn>
+        </>}
+      </div>
+    </div>
+  </div>
+}
+
+// ── PITCH MAPS TAB — season-level maps from imported data ──
+// Vertical pitch, all events normalised to attack the TOP goal
+function SeasonPitch({data,mode,zones}){
+  // data: [x, y, code]. All folded onto one goal (shots: x>0.5; KOs: x<0.6 from own goal)
+  const half=mode!=="ko"; // shots use attacking half only
+  const W=240,H=half?200:360,L=10,R=230,T=10,B=half?190:350,MX=120;
+  const LN="rgba(255,255,255,0.5)",LN2="rgba(255,255,255,0.28)",LN3="rgba(255,255,255,0.15)";
+  const GI=36,GO=50,GW=8;
+  const colFor=c=>{
+    if(mode==="ko")return c==="W"?NEON.green:NEON.red;
+    if(c==="G")return NEON.purple;
+    if(c==="P"||c==="2")return NEON.green;
+    return NEON.red;
+  };
+  if(half){
+    // Attacking half: x 0.5..1 maps bottom..top. Goal at top. Official proportions.
+    const y=f=>T+((1-f)/0.5)*(B-T); // folded-x → py
+    const y13=y(0.907),y20=y(0.857),yD=y(0.764),yARC=y(0.714),y45=y(0.679),y65=y(0.536);
+    const SR=15,LR=44; // small/large rect half-widths
+    return <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",display:"block"}}>
+      <rect x="0" y="0" width={W} height={H} fill={C.bg}/>
+      <rect x={L} y={T} width={R-L} height={B-T} fill="none" stroke={LN} strokeWidth="2" rx="2"/>
+      <line x1={L} y1={B} x2={R} y2={B} stroke={LN2} strokeWidth="1.5" strokeDasharray="8,5"/>
+      {/* Small + large rectangles */}
+      <rect x={MX-SR} y={T} width={SR*2} height={12} fill="none" stroke={LN} strokeWidth="1.2"/>
+      <rect x={MX-LR} y={T} width={LR*2} height={y13-T} fill="none" stroke={LN} strokeWidth="1.2"/>
+      {/* 13m line (outside the large rect only) */}
+      <line x1={L} y1={y13} x2={MX-LR} y2={y13} stroke={LN2} strokeWidth="1"/>
+      <line x1={MX+LR} y1={y13} x2={R} y2={y13} stroke={LN2} strokeWidth="1"/>
+      {/* 20m line */}
+      <line x1={L} y1={y20} x2={R} y2={y20} stroke={LN} strokeWidth="1.5"/>
+      {/* 45m + 65m */}
+      <line x1={L} y1={y45} x2={R} y2={y45} stroke={LN} strokeWidth="1.2"/>
+      <line x1={L} y1={y65} x2={R} y2={y65} stroke={LN2} strokeWidth="1"/>
+      {/* BIG 40m arc — sideline to sideline, apex inside the 45 */}
+      <path d={`M${L+4},${y13} Q${MX},${2*yARC-y13} ${R-4},${y13}`} fill="none" stroke={LN} strokeWidth="2"/>
+      {/* Small D — 13m semicircle off the 20m line */}
+      <path d={`M${MX-30},${y20} Q${MX},${2*yD-y20} ${MX+30},${y20}`} fill="none" stroke={LN} strokeWidth="1.3"/>
+      {/* Goalposts */}
+      <line x1={MX-16} y1={T-2} x2={MX+16} y2={T-2} stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+      {zones&&zones.map((z,i)=>{
+        const yTop=y(z.toX);
+        const yBot=y(z.fromX);
+        const col=z.pct>=60?NEON.green:z.pct>=45?"#ffdd00":NEON.red;
+        return <g key={i}>
+          <rect x={L} y={yTop} width={R-L} height={yBot-yTop} fill={col} opacity="0.07"/>
+          <line x1={L} y1={yBot} x2={R} y2={yBot} stroke={col} strokeWidth="0.6" opacity="0.4" strokeDasharray="3,3"/>
+          <rect x={R-58} y={yTop+4} width="52" height="22" rx="4" fill={C.bg} opacity="0.85"/>
+          <text x={R-32} y={yTop+13} fill={col} fontSize="9" fontWeight="900" fontFamily="monospace" textAnchor="middle">{z.pct}%</text>
+          <text x={R-32} y={yTop+22} fill={C.slate} fontSize="5.5" fontFamily="monospace" textAnchor="middle">{z.label} · {z.n}</text>
+        </g>
+      })}
+      {data.map((d,i)=>{
+        if(d[0]<0.5)return null;
+        const px=L+(d[1]*(R-L));
+        const py=y(d[0]);
+        return <circle key={i} cx={px} cy={py} r="3.5" fill={colFor(d[2])} opacity="0.55" stroke="rgba(255,255,255,0.3)" strokeWidth="0.3"/>
+      })}
+    </svg>
+  }
+  // Full pitch for kickouts — own goal at bottom, official layout both ends
+  const yTop=f=>T+f*(B-T), yBot=f=>B-f*(B-T); // f = fraction of pitch length from that end
+  const SR=15,LR=44;
+  const ends=[{e:T,y:yTop,sgn:1},{e:B,y:yBot,sgn:-1}];
+  return <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",display:"block"}}>
+    <rect x="0" y="0" width={W} height={H} fill={C.bg}/>
+    <rect x={L} y={T} width={R-L} height={B-T} fill="none" stroke={LN} strokeWidth="2" rx="2"/>
+    <line x1={L} y1={(T+B)/2} x2={R} y2={(T+B)/2} stroke={LN2} strokeWidth="1.5" strokeDasharray="8,5"/>
+    {ends.map((en,k)=>{
+      const y13=en.y(0.093),y20=en.y(0.143),yD=en.y(0.236),yARC=en.y(0.286),y45=en.y(0.321),y65=en.y(0.464);
+      return <g key={k}>
+        <rect x={MX-SR} y={Math.min(en.e,en.e+en.sgn*10)} width={SR*2} height={10} fill="none" stroke={LN} strokeWidth="1"/>
+        <rect x={MX-LR} y={Math.min(en.e,y13)} width={LR*2} height={Math.abs(y13-en.e)} fill="none" stroke={LN} strokeWidth="1"/>
+        <line x1={L} y1={y13} x2={MX-LR} y2={y13} stroke={LN2} strokeWidth="0.8"/>
+        <line x1={MX+LR} y1={y13} x2={R} y2={y13} stroke={LN2} strokeWidth="0.8"/>
+        <line x1={L} y1={y20} x2={R} y2={y20} stroke={LN} strokeWidth="1.3"/>
+        <line x1={L} y1={y45} x2={R} y2={y45} stroke={LN} strokeWidth="1"/>
+        <line x1={L} y1={y65} x2={R} y2={y65} stroke={LN2} strokeWidth="0.8"/>
+        <path d={`M${L+4},${y13} Q${MX},${2*yARC-y13} ${R-4},${y13}`} fill="none" stroke={LN} strokeWidth="1.6"/>
+        <path d={`M${MX-26},${y20} Q${MX},${2*yD-y20} ${MX+26},${y20}`} fill="none" stroke={LN} strokeWidth="1.1"/>
+        <line x1={MX-16} y1={en.e-en.sgn*2} x2={MX+16} y2={en.e-en.sgn*2} stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+      </g>
+    })}
+    {data.map((d,i)=>{
+      const px=L+(d[1]*(R-L));
+      const py=T+((1-d[0])*(B-T));
+      return <circle key={i} cx={px} cy={py} r="3" fill={colFor(d[2])} opacity="0.55" stroke="rgba(255,255,255,0.3)" strokeWidth="0.3"/>
+    })}
+  </svg>
+}
+function PitchMapsTab({yr="all"}){
+  const [view,setView]=useState("shots");
+  const [showZones,setShowZones]=useState(true);
+  const [halfF,setHalfF]=useState("all"); // all | 1 | 2
+  const views=[{id:"shots",l:"Our Shots"},{id:"opp",l:"Opp Shots"},{id:"ko",l:"Kickouts"}];
+  const yfilt=arr=>yr==="all"?arr:arr.filter(d=>d[4]===(yr==="y25"?1:2));
+  const filt=arr=>{const a=yfilt(arr);return halfF==="all"?a:a.filter(d=>d[3]===Number(halfF))};
+  const hs=filt(HS),os=filt(OS),hk=filt(HK);
+  const isSc=c=>["P","G","2"].includes(c);
+  const hsScores=hs.filter(s=>isSc(s[2])).length;
+  const osScores=os.filter(s=>isSc(s[2])).length;
+  const koWon=hk.filter(k=>k[2]==="W").length;
+
+  // Zone conversion: inside D (x≥0.855), D→45 (0.69–0.855), beyond 45 (0.5–0.69)
+  const zonesFor=arr=>{
+    const defs=[{fromX:0.764,toX:1,label:"INSIDE D"},{fromX:0.714,toX:0.764,label:"D TO ARC"},{fromX:0.5,toX:0.714,label:"2PT ZONE"}];
+    return defs.map(z=>{
+      const inZ=arr.filter(d=>d[0]>=z.fromX&&d[0]<z.toX||z.toX===1&&d[0]>=z.fromX);
+      const sc=inZ.filter(d=>isSc(d[2])).length;
+      return {...z,n:inZ.length,pct:inZ.length?Math.round(sc/inZ.length*100):0};
+    });
+  };
+
+  // Kickout zone grid: rows Short/Mid/Long (x), cols Left/Centre/Right (y)
+  const koGrid=(()=>{
+    const rows=[{l:"Short",f:x=>x<0.25},{l:"Mid",f:x=>x>=0.25&&x<0.45},{l:"Long",f:x=>x>=0.45}];
+    const cols=[{l:"Left",f:y=>y<0.33},{l:"Centre",f:y=>y>=0.33&&y<0.66},{l:"Right",f:y=>y>=0.66}];
+    return rows.map(r=>cols.map(c=>{
+      const cell=hk.filter(k=>r.f(k[0])&&c.f(k[1]));
+      const w=cell.filter(k=>k[2]==="W").length;
+      return {n:cell.length,pct:cell.length?Math.round(w/cell.length*100):null};
+    }));
+  })();
+
+  const HalfChips=()=><div style={{display:"flex",gap:4,justifyContent:"center",marginBottom:8}}>
+    {[["all","ALL"],["1","1ST HALF"],["2","2ND HALF"]].map(([v,l])=><button key={v} onClick={()=>setHalfF(v)} style={{padding:"5px 12px",background:halfF===v?`${C.blue}22`:C.bgDark,border:`1px solid ${halfF===v?C.blue:C.border}`,borderRadius:6,cursor:"pointer",color:halfF===v?C.blue:C.slate,fontSize:9,fontFamily:"monospace",fontWeight:halfF===v?700:400}}>{l}</button>)}
+  </div>;
+
+  return <div>
+    <div style={{display:"flex",gap:6,marginTop:16,marginBottom:12}}>
+      {views.map(v=><button key={v.id} onClick={()=>setView(v.id)} style={{flex:1,padding:"10px 4px",background:view===v.id?`${C.green}22`:C.bgDark,border:`1px solid ${view===v.id?C.greenB:C.border}`,borderRadius:8,cursor:"pointer",color:view===v.id?C.greenB:C.slate,fontSize:11,fontWeight:view===v.id?700:400,fontFamily:"monospace"}}>{v.l}</button>)}
+    </div>
+    <HalfChips/>
+
+    {view==="shots"&&<div>
+      <div style={{fontSize:10,fontFamily:"monospace",color:C.slate,marginBottom:8,textAlign:"center"}}>{hs.length} SHOTS · {hsScores} SCORES ({hs.length?Math.round(hsScores/hs.length*100):0}%)</div>
+      <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${C.border}`,marginBottom:8}}><SeasonPitch data={hs} mode="shots" zones={showZones?zonesFor(hs):null}/></div>
+      <button onClick={()=>setShowZones(z=>!z)} style={{width:"100%",padding:"8px",background:showZones?`${C.green}18`:C.bgDark,border:`1px solid ${showZones?C.greenB:C.border}`,borderRadius:8,cursor:"pointer",color:showZones?C.greenB:C.slate,fontSize:10,fontFamily:"monospace",fontWeight:700,marginBottom:8}}>{showZones?"◉ ZONE CONVERSION ON":"○ ZONE CONVERSION OFF"}</button>
+      <div style={{display:"flex",justifyContent:"center",gap:16}}>
+        {[["Score",NEON.green],["Goal",NEON.purple],["Miss",NEON.red]].map(([l,c])=><div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,fontFamily:"monospace",color:C.slate}}><div style={{width:8,height:8,borderRadius:"50%",background:c,boxShadow:`0 0 5px ${c}`}}/>{l}</div>)}
+      </div>
+    </div>}
+
+    {view==="opp"&&<div>
+      <div style={{fontSize:10,fontFamily:"monospace",color:C.slate,marginBottom:8,textAlign:"center"}}>{os.length} OPPOSITION SHOTS · {osScores} CONCEDED ({os.length?Math.round(osScores/os.length*100):0}%)</div>
+      <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${C.border}`,marginBottom:8}}><SeasonPitch data={os} mode="shots" zones={showZones?zonesFor(os):null}/></div>
+      <button onClick={()=>setShowZones(z=>!z)} style={{width:"100%",padding:"8px",background:showZones?`${C.green}18`:C.bgDark,border:`1px solid ${showZones?C.greenB:C.border}`,borderRadius:8,cursor:"pointer",color:showZones?C.greenB:C.slate,fontSize:10,fontFamily:"monospace",fontWeight:700,marginBottom:8}}>{showZones?"◉ ZONE CONVERSION ON":"○ ZONE CONVERSION OFF"}</button>
+      <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,textAlign:"center"}}>WHERE WE CONCEDE FROM — LOWER % = BETTER DEFENDING</div>
+    </div>}
+
+    {view==="ko"&&<div>
+      <div style={{fontSize:10,fontFamily:"monospace",color:C.slate,marginBottom:8,textAlign:"center"}}>{hk.length} OWN KICKOUTS · {koWon} WON ({hk.length?Math.round(koWon/hk.length*100):0}%)</div>
+      <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${C.border}`,marginBottom:10}}><SeasonPitch data={hk} mode="ko"/></div>
+      <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:16}}>
+        {[["Won",NEON.green],["Lost",NEON.red]].map(([l,c])=><div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,fontFamily:"monospace",color:C.slate}}><div style={{width:8,height:8,borderRadius:"50%",background:c,boxShadow:`0 0 5px ${c}`}}/>{l}</div>)}
+      </div>
+
+      <SL>KICKOUT WIN % BY ZONE</SL>
+      <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:8}}>WHERE SHOULD THE KEEPER GO UNDER PRESSURE</div>
+      <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr",gap:4}}>
+          <div/>
+          {["LEFT","CENTRE","RIGHT"].map(c=><div key={c} style={{fontSize:8,fontFamily:"monospace",color:C.slate,textAlign:"center",paddingBottom:4}}>{c}</div>)}
+          {["SHORT","MID","LONG"].map((r,ri)=>[
+            <div key={r} style={{fontSize:8,fontFamily:"monospace",color:C.slate,display:"flex",alignItems:"center"}}>{r}</div>,
+            ...koGrid[ri].map((cell,ci)=>{
+              const col=cell.pct===null?C.slate:cell.pct>=70?NEON.green:cell.pct>=55?"#ffdd00":NEON.red;
+              return <div key={ci} style={{background:cell.pct===null?C.bgDark:`${col}15`,border:`1px solid ${cell.pct===null?C.border:col+"55"}`,borderRadius:8,padding:"12px 4px",textAlign:"center"}}>
+                <div style={{fontSize:15,fontWeight:900,fontFamily:"monospace",color:col}}>{cell.pct===null?"—":`${cell.pct}%`}</div>
+                <div style={{fontSize:7,fontFamily:"monospace",color:C.slate,marginTop:2}}>{cell.n} KOs</div>
+              </div>
+            })
+          ])}
+        </div>
+      </div>
+
+      <SL>KICKOUT SPEED</SL>
+      <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:8}}>TIME FROM SCORE/WIDE TO RESTART</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+        <div style={{background:C.bgCard,borderRadius:10,border:`1px solid ${C.greenB}44`,padding:14,textAlign:"center"}}>
+          <div style={{fontSize:24,fontWeight:900,fontFamily:"monospace",color:C.greenB}}>{KO_SPEED.overall}s</div>
+          <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:4}}>OVERALL AVG</div>
+        </div>
+        <div style={{background:C.bgCard,borderRadius:10,border:`1px solid ${C.border}`,padding:14,textAlign:"center"}}>
+          <div style={{fontSize:24,fontWeight:900,fontFamily:"monospace",color:C.blue}}>{KO_SPEED.short}s</div>
+          <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:4}}>SHORT KO AVG</div>
+        </div>
+      </div>
+      <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14}}>
+        {[["After Wide",KO_SPEED.afterWide,"Fastest — ball already dead",C.greenB],["After Point",KO_SPEED.afterPoint,"Standard restart",C.blue],["After Goal",KO_SPEED.afterGoal,"Slowest — celebrations & reset",C.gold]].map(([l,v,note,c],i)=><div key={i} style={{padding:"10px 0",borderBottom:i<2?`1px solid ${C.border}`:"none"}}>
+          <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:C.slate,fontFamily:"monospace"}}>{l}</span><span style={{fontSize:14,fontWeight:700,fontFamily:"monospace",color:c}}>{v}s</span></div>
+          <div style={{fontSize:9,color:C.slate,fontFamily:"monospace",marginTop:2}}>{note}</div>
+        </div>)}
+      </div>
+    </div>}
+  </div>
+}
+
+// ── LEADERBOARDS / STATS DASHBOARD ──
+function LeaderboardScreen({nav}){
+  const [yr,setYr]=useState("all"); // all | y25 | y26
+  const [player,setPlayer]=useState(null);
+  const sections=[{id:"sec-team",l:"Team"},{id:"sec-players",l:"Players"},{id:"sec-pitch",l:"Maps"},{id:"sec-opp",l:"Opposition"},{id:"sec-bench",l:"Benchmarking"}];
+  const jump=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"});
+
+  // Season-split data from the cleaned 19-match dataset
+  const LB={
+    all:{rec:"11-6-2",win:"58%",conv:"52%",ko:"66%",games:19,
+      scorers:[{n:"Ryan Harrison",g:2,p:38,fg:0,fp:23,apps:8},{n:"Daragh Rochford",g:6,p:27,fg:0,fp:0,apps:18},{n:"Tim Harrington",g:5,p:26,fg:2,fp:3,apps:12},{n:"Conor Broderick",g:3,p:31,fg:0,fp:13,apps:14},{n:"Des Kelly",g:0,p:38,fg:0,fp:21,apps:19},{n:"Cathal Magee",g:3,p:15,fg:0,fp:2,apps:15},{n:"Paul Cunningham",g:3,p:10,fg:0,fp:5,apps:8},{n:"Cian Lohan",g:1,p:14,fg:0,fp:0,apps:7}],
+      tackles:[{n:"Des Kelly",count:59,bl:2,apps:19},{n:"Ross Hayde",count:57,bl:1,apps:17},{n:"Oscar Harty",count:46,bl:6,apps:16},{n:"Mark Cullen",count:45,bl:0,apps:10},{n:"Daragh Rochford",count:44,bl:2,apps:18},{n:"Conor Broderick",count:35,bl:0,apps:14},{n:"Rory Breslin",count:33,bl:2,apps:15},{n:"Jack Treacy",count:33,bl:3,apps:9}],
+      tos:[{n:"Conor Broderick",count:30,apps:14},{n:"Daragh Rochford",count:30,apps:18},{n:"Shane Lohan",count:29,apps:11},{n:"Des Kelly",count:28,apps:19},{n:"Mark Cullen",count:22,apps:10},{n:"Tim Harrington",count:21,apps:12},{n:"Oscar Harty",count:20,apps:16},{n:"Jack Treacy",count:20,apps:9}],
+      eff:[{n:"Paul Cunningham",s:12,t:18,pct:67},{n:"Daragh Rochford",s:32,t:51,pct:63},{n:"Des Kelly",s:32,t:53,pct:60},{n:"Ross Hayde",s:9,t:15,pct:60},{n:"Eoin McCormack",s:6,t:10,pct:60},{n:"Ryan Harrison",s:31,t:53,pct:58},{n:"Cian Lohan",s:15,t:27,pct:56},{n:"Cathal Magee",s:18,t:33,pct:55}],
+      donut:[{l:"In Contact",v:132,c:"#ff3355"},{l:"Kick Pass",v:84,c:"#ff8c00"},{l:"Hand Pass",v:61,c:"#f0c040"},{l:"Interception",v:45,c:"#cc44ff"},{l:"Shot Short",v:34,c:"#00ff88"},{l:"Handling",v:33,c:"#4a9eff"},{l:"Foul",v:28,c:"#7a90aa"}],
+      opp:[{name:"Carnew",p:5,w:4,l:0,dr:1},{name:"Avondale",p:2,w:2,l:0,dr:0},{name:"Baltinglass",p:2,w:0,l:2,dr:0},{name:"Blessington",p:2,w:1,l:1,dr:0},{name:"Dunlavin",p:2,w:1,l:1,dr:0},{name:"Hollywood",p:1,w:0,l:0,dr:1},{name:"Coolkenno",p:1,w:1,l:0,dr:0},{name:"Shillelagh",p:1,w:1,l:0,dr:0},{name:"An Tochar",p:1,w:0,l:1,dr:0},{name:"Eire Og",p:1,w:0,l:1,dr:0},{name:"Rathnew",p:1,w:1,l:0,dr:0}]},
+    y25:{rec:"8-4-2",win:"57%",conv:"52%",ko:"67%",games:14,
+      scorers:[{n:"Conor Broderick",g:3,p:26,fg:0,fp:10,apps:10},{n:"Daragh Rochford",g:6,p:18,fg:0,fp:0,apps:13},{n:"Ryan Harrison",g:2,p:25,fg:0,fp:15,apps:6},{n:"Des Kelly",g:0,p:26,fg:0,fp:16,apps:14},{n:"Cathal Magee",g:3,p:12,fg:0,fp:2,apps:12},{n:"Tim Harrington",g:4,p:9,fg:1,fp:0,apps:8},{n:"Paul Cunningham",g:3,p:10,fg:0,fp:5,apps:8},{n:"Cian Lohan",g:1,p:14,fg:0,fp:0,apps:7}],
+      tackles:[{n:"Mark Cullen",count:45,bl:0,apps:10},{n:"Des Kelly",count:41,bl:1,apps:14},{n:"Ross Hayde",count:35,bl:1,apps:12},{n:"Oscar Harty",count:33,bl:2,apps:11},{n:"Jack Treacy",count:33,bl:3,apps:9},{n:"Dara O'hAnnaidh",count:33,bl:3,apps:10},{n:"Daragh Rochford",count:32,bl:0,apps:13},{n:"Rory Breslin",count:27,bl:1,apps:11}],
+      tos:[{n:"Shane Lohan",count:29,apps:11},{n:"Mark Cullen",count:22,apps:10},{n:"Daragh Rochford",count:21,apps:13},{n:"Des Kelly",count:20,apps:14},{n:"Jack Treacy",count:20,apps:9},{n:"Conor Broderick",count:19,apps:10},{n:"Dara O'hAnnaidh",count:15,apps:10},{n:"Ross Hayde",count:14,apps:12}],
+      eff:[{n:"Paul Cunningham",s:12,t:18,pct:67},{n:"Daragh Rochford",s:24,t:38,pct:63},{n:"Ross Hayde",s:5,t:8,pct:62},{n:"Eoin McCormack",s:6,t:10,pct:60},{n:"Des Kelly",s:23,t:39,pct:59},{n:"Conor Broderick",s:23,t:40,pct:57},{n:"Cian Lohan",s:15,t:27,pct:56},{n:"Ryan Harrison",s:21,t:38,pct:55}],
+      donut:[{l:"In Contact",v:106,c:"#ff3355"},{l:"Kick Pass",v:66,c:"#ff8c00"},{l:"Hand Pass",v:45,c:"#f0c040"},{l:"Interception",v:37,c:"#cc44ff"},{l:"Handling",v:25,c:"#4a9eff"},{l:"Foul",v:21,c:"#7a90aa"},{l:"Shot Short",v:20,c:"#00ff88"}],
+      opp:[{name:"Carnew",p:4,w:3,l:0,dr:1},{name:"Avondale",p:2,w:2,l:0,dr:0},{name:"Dunlavin",p:2,w:1,l:1,dr:0},{name:"Hollywood",p:1,w:0,l:0,dr:1},{name:"Coolkenno",p:1,w:1,l:0,dr:0},{name:"Shillelagh",p:1,w:1,l:0,dr:0},{name:"An Tochar",p:1,w:0,l:1,dr:0},{name:"Baltinglass",p:1,w:0,l:1,dr:0},{name:"Blessington",p:1,w:0,l:1,dr:0}]},
+    y26:{rec:"3-2-0",win:"60%",conv:"53%",ko:"64%",games:5,
+      scorers:[{n:"Tim Harrington",g:1,p:17,fg:1,fp:3,apps:4},{n:"Ryan Harrison",g:0,p:13,fg:0,fp:8,apps:2},{n:"Des Kelly",g:0,p:12,fg:0,fp:5,apps:5},{n:"Daragh Rochford",g:0,p:9,fg:0,fp:0,apps:5},{n:"Eanna Hayes",g:1,p:2,fg:0,fp:0,apps:3},{n:"Conor Broderick",g:0,p:5,fg:0,fp:3,apps:4},{n:"Daire Lohan",g:1,p:1,fg:0,fp:0,apps:3},{n:"Ross Hayde",g:0,p:4,fg:0,fp:0,apps:5}],
+      tackles:[{n:"Ross Hayde",count:22,bl:0,apps:5},{n:"Sam Kearney",count:20,bl:2,apps:5},{n:"Des Kelly",count:18,bl:1,apps:5},{n:"Arran Murphy",count:15,bl:1,apps:4},{n:"Oscar Harty",count:13,bl:4,apps:5},{n:"Conal Butler",count:13,bl:1,apps:4},{n:"Daire Lohan",count:13,bl:1,apps:3},{n:"Daragh Rochford",count:12,bl:2,apps:5}],
+      tos:[{n:"Conor Broderick",count:11,apps:4},{n:"Daragh Rochford",count:9,apps:5},{n:"Tim Harrington",count:9,apps:4},{n:"Arran Murphy",count:8,apps:4},{n:"Des Kelly",count:8,apps:5},{n:"Oscar Harty",count:6,apps:5},{n:"Luke Cotter",count:6,apps:3},{n:"Ross Hayde",count:5,apps:5}],
+      eff:[{n:"Ryan Harrison",s:10,t:15,pct:67},{n:"Des Kelly",s:9,t:14,pct:64},{n:"Daragh Rochford",s:8,t:13,pct:62},{n:"Ross Hayde",s:4,t:7,pct:57},{n:"Tim Harrington",s:16,t:28,pct:57},{n:"Conor Broderick",s:5,t:14,pct:36},{n:"Arran Murphy",s:2,t:6,pct:33},{n:"Brian Nesbitt",s:2,t:6,pct:33}],
+      donut:[{l:"In Contact",v:26,c:"#ff3355"},{l:"Kick Pass",v:18,c:"#ff8c00"},{l:"Hand Pass",v:16,c:"#f0c040"},{l:"Shot Short",v:14,c:"#00ff88"},{l:"Handling",v:8,c:"#4a9eff"},{l:"Interception",v:8,c:"#cc44ff"},{l:"Foul",v:7,c:"#7a90aa"}],
+      opp:[{name:"Carnew",p:1,w:1,l:0,dr:0},{name:"Rathnew",p:1,w:1,l:0,dr:0},{name:"Blessington",p:1,w:1,l:0,dr:0},{name:"Eire Og",p:1,w:0,l:1,dr:0},{name:"Baltinglass",p:1,w:0,l:1,dr:0}]}
+  };
+  const SD=LB[yr];
+  const scoringLeaders=SD.scorers,tackleLeaders=SD.tackles,turnoverLeaders=SD.tos;
+  const teamStats=[
+    {l:"Record",v:SD.rec,trend:"flat"},{l:"Games",v:String(SD.games),trend:"flat"},
+    {l:"Conv Rate",v:SD.conv,trend:"flat"},{l:"KO Retention",v:SD.ko,trend:yr==="y26"?"down":"flat"},{l:"Avg Wides",v:"7.1",trend:"flat"},
+  ];
+  const oppData=SD.opp.map(o=>({...o,d:o.dr,pf:0,pa:0}));
+  const refData=[];
+
+
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.white,fontFamily:"Inter,-apple-system,system-ui,sans-serif",paddingBottom:40}}>
+    <div style={{background:"linear-gradient(180deg,#0a1020,#070c18)",borderBottom:`1px solid ${C.border}`,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+      <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:C.slate,cursor:"pointer",fontSize:20,padding:0}}>‹</button>
+      <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>Stats & Leaderboards</div><div style={{fontSize:10,color:C.blue,fontFamily:"monospace",letterSpacing:2}}>BRAY EMMETS · 2025–2026</div></div>
+      <LogoIcon size={24}/>
+    </div>
+
+    {/* Section jump nav — single scrolling dashboard, no tabs */}
+    <div style={{display:"flex",gap:6,borderBottom:`1px solid ${C.border}`,background:C.bgDark,padding:"8px 12px",overflowX:"auto"}}>
+      {sections.map(s=><button key={s.id} onClick={()=>jump(s.id)} style={{flexShrink:0,padding:"6px 14px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:14,cursor:"pointer",color:C.slate,fontSize:10,fontFamily:"monospace",fontWeight:700,letterSpacing:1}}>{s.l}</button>)}
+    </div>
+
+    <div style={{padding:"12px 16px",maxWidth:480,margin:"0 auto"}}>
+      <div style={{display:"flex",gap:4,justifyContent:"center",marginTop:4}}>
+        {[["all","ALL TIME"],["y25","2025"],["y26","2026"]].map(([v,l])=><button key={v} onClick={()=>setYr(v)} style={{padding:"6px 16px",background:yr===v?`${C.green}22`:C.bgDark,border:`1px solid ${yr===v?C.greenB:C.border}`,borderRadius:6,cursor:"pointer",color:yr===v?C.greenB:C.slate,fontSize:10,fontFamily:"monospace",fontWeight:yr===v?700:400}}>{l}</button>)}
+      </div>
+      {/* Team Stats tab */}
+      <div id="sec-team">
+        <SL>SEASON OVERVIEW — {yr==="all"?"19 MATCHES (2025–2026)":yr==="y25"?"2025 · 14 MATCHES":"2026 · 5 MATCHES"}</SL>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+          {teamStats.map((s,i)=><div key={i} style={{background:C.bgCard,borderRadius:10,border:`1px solid ${C.border}`,padding:12,textAlign:"center"}}>
+            <div style={{fontSize:18,fontWeight:900,fontFamily:"monospace",color:s.trend==="up"?C.greenB:s.trend==="down"?C.red:C.white}}>{s.v}</div>
+            <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:4}}>{s.l}</div>
+            <div style={{fontSize:10,marginTop:2}}>{s.trend==="up"?"↑":s.trend==="down"?"↓":"→"}</div>
+          </div>)}
+        </div>
+        <SL>PER GAME — BRAY YTD vs OPPOSITION AVG</SL>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+          <div style={{display:"flex",padding:"0 0 6px",borderBottom:`1px solid ${C.borderB}`}}>
+            <div style={{flex:1,textAlign:"center",fontSize:8,fontFamily:"monospace",color:C.blue,fontWeight:700}}>BRAY YTD</div>
+            <div style={{flex:1.5}}/>
+            <div style={{flex:1,textAlign:"center",fontSize:8,fontFamily:"monospace",color:C.gold,fontWeight:700}}>OPP AVG</div>
+          </div>
+          {[
+            {l:"Scoring Chances",h:"27.3",a:"22.1",hb:true},
+            {l:"Conversion Rate",h:"53%",a:"50%",hb:true},
+            {l:"Frees Converted",h:"62%",a:"63%",hb:false},
+            {l:"KO Retention",h:"66%",a:"54%",hb:true},
+            {l:"Turnovers",h:"22.0",a:"18.2",hb:false},
+            {l:"Tackles",h:"39.4",a:"28.3",hb:true},
+            {l:"Wides",h:"8.2",a:"6.6",hb:false},
+            {l:"Cards",h:"0.6",a:"0.2",hb:false},
+          ].map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",padding:"8px 0",borderBottom:i<7?`1px solid ${C.border}`:"none"}}>
+            <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:700,fontFamily:"monospace",color:s.hb?C.greenB:C.blue}}>{s.h}</div>
+            <div style={{flex:1.5,textAlign:"center",fontSize:10,color:C.slate,fontFamily:"monospace"}}>{s.l}</div>
+            <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:700,fontFamily:"monospace",color:C.gold}}>{s.a}</div>
+          </div>)}
+            <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:8,textAlign:"center"}}>GREEN = AHEAD OF OPPOSITION AVERAGE · 19 MATCHES</div>
+        </div>
+        <SL>SCORING BY HALF</SL>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+          {[["1st Half Avg","0-6","56%"],["2nd Half Avg","1-4","62%"]].map(([l,sc,conv],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i===0?`1px solid ${C.border}`:"none"}}>
+            <span style={{fontSize:11,color:C.slate,fontFamily:"monospace"}}>{l}</span>
+            <div style={{textAlign:"right"}}><span style={{fontSize:14,fontWeight:700,fontFamily:"monospace"}}>{sc}</span><span style={{fontSize:10,color:C.slate,marginLeft:8}}>{conv} conv</span></div>
+          </div>)}
+        </div>
+      </div>
+
+      <div id="sec-players">
+        <SL>PLAYER LOOKUP</SL>
+        {(()=>{
+          const allNames=Array.from(new Set([...scoringLeaders,...tackleLeaders,...turnoverLeaders,...SD.eff].map(p=>p.n))).sort();
+          const find=arr=>arr.find(p=>p.n===player);
+          const sc=find(scoringLeaders),tk=find(tackleLeaders),to=find(turnoverLeaders),ef=find(SD.eff);
+          return <>
+            <select value={player||""} onChange={e=>setPlayer(e.target.value||null)} style={{width:"100%",background:C.bgDark,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px",color:C.white,fontSize:13,boxSizing:"border-box",outline:"none",fontFamily:"Inter,-apple-system,system-ui,sans-serif",marginBottom:16,appearance:"none"}}>
+              <option value="">— Select a player —</option>
+              {allNames.map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+            {player&&<div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.greenB}44`,padding:16,marginBottom:16}}>
+              <div style={{fontSize:16,fontWeight:900,marginBottom:2}}>{player}</div>
+              <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:12}}>{(sc?.apps||tk?.apps||to?.apps||0)} APPS · {yr==="all"?"ALL TIME":yr==="y25"?"2025":"2026"}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                <div style={{background:C.bgDark,borderRadius:8,padding:10,textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:C.greenB}}>{sc?`${sc.g}-${String(sc.p).padStart(2,"0")}`:"—"}</div>
+                  <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:2}}>SCORED{sc?` (${sc.fg}-${String(sc.fp).padStart(2,"0")} f)`:""}</div>
+                </div>
+                <div style={{background:C.bgDark,borderRadius:8,padding:10,textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:ef?(ef.pct>=60?C.greenB:ef.pct>=50?C.gold:C.red):C.slate}}>{ef?`${ef.pct}%`:"—"}</div>
+                  <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:2}}>{ef?`SHOT EFF (${ef.s}/${ef.t})`:"SHOT EFF"}</div>
+                </div>
+                <div style={{background:C.bgDark,borderRadius:8,padding:10,textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:C.blue}}>{tk?tk.count:"—"}</div>
+                  <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:2}}>TACKLES{tk?.bl>0?` (${tk.bl} blk)`:""}</div>
+                </div>
+                <div style={{background:C.bgDark,borderRadius:8,padding:10,textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:C.red}}>{to?to.count:"—"}</div>
+                  <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:2}}>TURNOVERS</div>
+                </div>
+                <div style={{background:C.bgDark,borderRadius:8,padding:10,textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:C.white}}>{sc?(sc.g*3+sc.p):"—"}</div>
+                  <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:2}}>TOTAL PTS</div>
+                </div>
+                <div style={{background:C.bgDark,borderRadius:8,padding:10,textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:C.gold}}>{sc?Math.round((sc.g*3+sc.p)/sc.apps*10)/10:"—"}</div>
+                  <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:2}}>PTS / GAME</div>
+                </div>
+              </div>
+            </div>}
+          </>
+        })()}
+
+
+        <SL>POSITION BENCHMARKING <span style={{color:C.gold}}>· DEMO DATA</span></SL>
+        <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:10,lineHeight:1.6}}>How Bray's lines compare to the Wicklow average for that position (county baseline from 11 illustrative club seasons).</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          {BRAY_POS_BENCH.map((b,i)=>{
+            const cb=POS_BENCH.find(p=>p.pos===b.pos);
+            const Row=({l,bv,cv,suffix=""})=>{
+              const diff=bv-cv;const up=diff>0;
+              return <div style={{display:"flex",alignItems:"center",padding:"4px 0"}}>
+                <div style={{flex:1.4,fontSize:9,fontFamily:"monospace",color:C.slate}}>{l}</div>
+                <div style={{flex:1,textAlign:"center",fontSize:12,fontWeight:700,fontFamily:"monospace",color:C.blue}}>{bv}{suffix}</div>
+                <div style={{flex:1,textAlign:"center",fontSize:9,fontFamily:"monospace",color:up?C.greenB:C.red}}>{up?"▲":"▼"} {Math.abs(Math.round(diff*10)/10)}{suffix}</div>
+                <div style={{flex:1,textAlign:"center",fontSize:12,fontFamily:"monospace",color:C.gold}}>{cv}{suffix}</div>
+              </div>
+            };
+            return <div key={b.pos} style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14}}>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{b.pos}</div>
+              <div style={{display:"flex",fontSize:8,fontFamily:"monospace",color:C.slate,fontWeight:700,paddingBottom:4,borderBottom:`1px solid ${C.borderB}`,marginBottom:2}}>
+                <div style={{flex:1.4}}></div><div style={{flex:1,textAlign:"center",color:C.blue}}>BRAY</div><div style={{flex:1,textAlign:"center"}}>DIFF</div><div style={{flex:1,textAlign:"center",color:C.gold}}>CO. AVG</div>
+              </div>
+              <Row l="Points / game" bv={b.pts} cv={cb.pts}/>
+              <Row l="Shot %" bv={b.shot} cv={cb.shot} suffix="%"/>
+              <Row l="Tackles / game" bv={b.tk} cv={cb.tk}/>
+              <Row l="Turnovers / game" bv={b.to} cv={cb.to}/>
+            </div>
+          })}
+          <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,opacity:0.6}}>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>Goalkeeper</div>
+            <div style={{fontSize:9,fontFamily:"monospace",color:C.slate}}>Not enough position-tagged data yet for Bray's keeper — tag goalkeeper events in upcoming matches to unlock this comparison (county avg: KO {POS_BENCH.find(p=>p.pos==="Goalkeeper").ko}%, {POS_BENCH.find(p=>p.pos==="Goalkeeper").sv} saves/game).</div>
+          </div>
+        </div>
+
+        <SL>TOP SCORERS</SL>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+          {scoringLeaders.map((p,i)=>{const pts=p.g*3+p.p;return <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:i<scoringLeaders.length-1?`1px solid ${C.border}`:"none"}}>
+            <div style={{width:20,fontSize:12,fontWeight:900,fontFamily:"monospace",color:i<3?C.gold:C.slate,textAlign:"center"}}>{i+1}</div>
+            <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{p.n}</div><div style={{fontSize:9,fontFamily:"monospace",color:C.slate}}>{p.apps} apps</div></div>
+            <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:C.greenB}}>{p.g}-{String(p.p).padStart(2,"0")}</div><div style={{fontSize:9,fontFamily:"monospace",color:C.slate}}>({p.fg}-{String(p.fp).padStart(2,"0")})</div></div>
+            <div style={{width:30,textAlign:"right",fontSize:12,fontWeight:900,fontFamily:"monospace",color:C.blue}}>{pts}</div>
+          </div>})}
+        </div>
+
+        <SL>TACKLE LEADERS</SL>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+          {tackleLeaders.map((p,i)=>{const max=tackleLeaders[0].count;return <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<tackleLeaders.length-1?`1px solid ${C.border}`:"none"}}>
+            <div style={{width:20,fontSize:12,fontWeight:900,fontFamily:"monospace",color:i<3?C.gold:C.slate,textAlign:"center"}}>{i+1}</div>
+            <div style={{flex:1,fontSize:12,fontWeight:i<3?700:400}}>{p.n} {p.bl>0&&<span style={{fontSize:9,color:C.blue,fontFamily:"monospace"}}>{p.bl} blk</span>}</div>
+            <div style={{width:60,height:8,background:C.bgDark,borderRadius:4,overflow:"hidden"}}>
+              <div style={{width:`${(p.count/max)*100}%`,height:"100%",background:C.greenB,borderRadius:4}}/>
+            </div>
+            <div style={{width:24,textAlign:"right",fontSize:12,fontWeight:700,fontFamily:"monospace",color:C.greenB}}>{p.count}</div>
+          </div>})}
+        </div>
+
+        <SL>TURNOVER LEADERS</SL>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14}}>
+          <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:8}}>WHO IS GIVING THE BALL AWAY</div>
+          {turnoverLeaders.map((p,i)=>{const max=turnoverLeaders[0].count;return <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<turnoverLeaders.length-1?`1px solid ${C.border}`:"none"}}>
+            <div style={{width:20,fontSize:12,fontWeight:900,fontFamily:"monospace",color:i<3?"#ff6b6b":C.slate,textAlign:"center"}}>{i+1}</div>
+            <div style={{flex:1,fontSize:12,fontWeight:i<3?700:400}}>{p.n}</div>
+            <div style={{width:70,height:8,background:C.bgDark,borderRadius:4,overflow:"hidden"}}>
+              <div style={{width:`${(p.count/max)*100}%`,height:"100%",background:C.red,borderRadius:4}}/>
+            </div>
+            <div style={{width:24,textAlign:"right",fontSize:12,fontWeight:700,fontFamily:"monospace",color:C.red}}>{p.count}</div>
+          </div>})}
+        </div>
+
+        <SL>SHOT EFFICIENCY</SL>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16}}>
+          <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:8}}>SCORES / SHOTS — MIN {yr==="all"?10:6} SHOTS</div>
+          {SD.eff.map((p,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<9?`1px solid ${C.border}`:"none"}}>
+            <div style={{width:20,fontSize:12,fontWeight:900,fontFamily:"monospace",color:i<3?C.gold:C.slate,textAlign:"center"}}>{i+1}</div>
+            <div style={{flex:1,fontSize:12,fontWeight:i<3?700:400}}>{p.n} <span style={{fontSize:9,color:C.slate,fontFamily:"monospace"}}>{p.s}/{p.t}</span></div>
+            <div style={{width:70,height:8,background:C.bgDark,borderRadius:4,overflow:"hidden"}}>
+              <div style={{width:`${p.pct}%`,height:"100%",background:p.pct>=60?C.greenB:p.pct>=50?C.gold:C.red,borderRadius:4}}/>
+            </div>
+            <div style={{width:34,textAlign:"right",fontSize:12,fontWeight:700,fontFamily:"monospace",color:p.pct>=60?C.greenB:p.pct>=50?C.gold:C.red}}>{p.pct}%</div>
+          </div>)}
+        </div>
+
+        <SL>HOW WE LOSE THE BALL</SL>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14}}>
+          <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:10}}>{SD.donut.reduce((a,s)=>a+s.v,0)} TURNOVERS — {SD.games} MATCHES</div>
+          {(()=>{
+            const slices=SD.donut;
+            const total=slices.reduce((a,s)=>a+s.v,0);
+            let acc=0;
+            const R2=52,CX=70,CY=70,IR=30;
+            return <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <svg viewBox="0 0 140 140" style={{width:130,flexShrink:0}}>
+                {slices.map((s,i)=>{
+                  const a0=(acc/total)*Math.PI*2-Math.PI/2;
+                  acc+=s.v;
+                  const a1=(acc/total)*Math.PI*2-Math.PI/2;
+                  const large=(a1-a0)>Math.PI?1:0;
+                  const x0=CX+R2*Math.cos(a0),y0=CY+R2*Math.sin(a0);
+                  const x1=CX+R2*Math.cos(a1),y1=CY+R2*Math.sin(a1);
+                  const xi1=CX+IR*Math.cos(a1),yi1=CY+IR*Math.sin(a1);
+                  const xi0=CX+IR*Math.cos(a0),yi0=CY+IR*Math.sin(a0);
+                  return <path key={i} d={`M${x0},${y0} A${R2},${R2} 0 ${large} 1 ${x1},${y1} L${xi1},${yi1} A${IR},${IR} 0 ${large} 0 ${xi0},${yi0} Z`} fill={s.c} opacity="0.85" stroke={C.bg} strokeWidth="1.5"/>
+                })}
+                <text x={CX} y={CY-2} fill={C.white} fontSize="16" fontWeight="900" fontFamily="monospace" textAnchor="middle">{total}</text>
+                <text x={CX} y={CY+12} fill={C.slate} fontSize="7" fontFamily="monospace" textAnchor="middle">TOTAL</text>
+              </svg>
+              <div style={{flex:1}}>
+                {slices.map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}}>
+                  <div style={{width:9,height:9,borderRadius:2,background:s.c,flexShrink:0}}/>
+                  <span style={{flex:1,fontSize:10,fontFamily:"monospace",color:C.white}}>{s.l}</span>
+                  <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:s.c}}>{s.v}</span>
+                  <span style={{fontSize:9,fontFamily:"monospace",color:C.slate,width:30,textAlign:"right"}}>{Math.round(s.v/total*100)}%</span>
+                </div>)}
+              </div>
+            </div>
+          })()}
+        </div>
+      </div>
+
+      <div id="sec-pitch"><PitchMapsTab yr={yr}/></div>
+
+      <div id="sec-opp">
+        <SL>OPPOSITION RECORD — {yr==="all"?"ALL TIME":yr==="y25"?"2025":"2026"}</SL>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {oppData.map((o,i)=>{const rc=o.w>o.l?C.greenB:o.l>o.w?C.red:C.gold;const result=`${o.w}-${o.l}${o.d?`-${o.d}`:""}`;return <div key={i} style={{background:C.bgCard,borderRadius:10,border:`1px solid ${C.border}`,padding:14}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <MJ col1={OPP_TEAMS.find(t=>t.name===o.name)?.c1||"#666"} col2={OPP_TEAMS.find(t=>t.name===o.name)?.c2||"#fff"} size={22}/>
+                <span style={{fontSize:13,fontWeight:700}}>{o.name}</span>
+              </div>
+              <span style={{fontSize:12,fontWeight:900,fontFamily:"monospace",color:rc}}>{result}</span>
+            </div>
+            <div style={{display:"flex",gap:16,fontSize:11,fontFamily:"monospace",color:C.slate}}>
+              <span>P{o.p}</span><span style={{color:C.greenB}}>W{o.w}</span><span style={{color:C.red}}>L{o.l}</span><span style={{color:C.gold}}>D{o.d}</span>
+            </div>
+          </div>})}
+        </div>
+      </div>
+
+      <div id="sec-bench">
+        <SL>WICKLOW BENCHMARKING <span style={{color:C.gold}}>· DEMO DATA</span></SL>
+        <div style={{fontSize:9,fontFamily:"monospace",color:C.slate,marginBottom:10,lineHeight:1.6}}>Bray Emmets is real (2025–2026 data). The other 11 clubs are illustrative — generated to show how county-wide benchmarking will work once more clubs are on Rock Solid.</div>
+        <div style={{background:C.bgCard,borderRadius:12,border:`1px solid ${C.border}`,padding:14,marginBottom:16,overflowX:"auto"}}>
+          <div style={{display:"flex",fontSize:8,fontFamily:"monospace",color:C.slate,fontWeight:700,padding:"0 0 6px",borderBottom:`1px solid ${C.borderB}`,minWidth:420}}>
+            <div style={{flex:2.2}}>CLUB</div><div style={{flex:1,textAlign:"center"}}>PTS/G</div><div style={{flex:1,textAlign:"center"}}>CONV</div><div style={{flex:1,textAlign:"center"}}>KO%</div><div style={{flex:1,textAlign:"center"}}>TK/G</div><div style={{flex:1,textAlign:"center"}}>TO/G</div>
+          </div>
+          {CLUB_BENCH.map((c,i)=><div key={c.n} style={{display:"flex",alignItems:"center",fontSize:11,padding:"7px 0",borderBottom:i<CLUB_BENCH.length-1?`1px solid ${C.border}`:"none",background:c.real?`${C.green}10`:"transparent",minWidth:420}}>
+            <div style={{flex:2.2,fontWeight:c.real?700:400,color:c.real?C.greenB:C.white,fontFamily:"monospace"}}>{i+1}. {c.n}{c.real&&" ●"}</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace",fontWeight:c.real?700:400}}>{c.pts}</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace"}}>{c.conv}%</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace"}}>{c.ko}%</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace"}}>{c.tk}</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace"}}>{c.to}</div>
+          </div>)}
+          <div style={{display:"flex",alignItems:"center",fontSize:11,padding:"7px 0",marginTop:4,borderTop:`1px solid ${C.borderB}`,minWidth:420}}>
+            <div style={{flex:2.2,fontWeight:700,color:C.gold,fontFamily:"monospace"}}>WICKLOW AVG</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace",fontWeight:700,color:C.gold}}>{WICKLOW_AVG.pts}</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace",color:C.gold}}>{WICKLOW_AVG.conv}%</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace",color:C.gold}}>{WICKLOW_AVG.ko}%</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace",color:C.gold}}>{WICKLOW_AVG.tk}</div>
+            <div style={{flex:1,textAlign:"center",fontFamily:"monospace",color:C.gold}}>{WICKLOW_AVG.to}</div>
+          </div>
+          <div style={{fontSize:8,fontFamily:"monospace",color:C.slate,marginTop:8,textAlign:"center"}}>● = REAL DATA · BRAY RANKS {CLUB_BENCH.findIndex(c=>c.real)+1} OF {CLUB_BENCH.length} ON PTS/GAME</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+}
+
+// ── APP SHELL ──
+function App(){
+  const [screen,setScreen]=useState("login");
+  const screens={
+    login:p=><LoginScreen {...p}/>,
+    onboarding:p=><OnboardingScreen {...p}/>,
+    home:p=><HomeScreen {...p}/>,
+    prematch:p=><PreMatchScreen {...p}/>,
+    tagger:p=><TaggerScreen {...p}/>,
+    halftime:p=><StatsScreen {...p} isFullTime={false}/>,
+    fulltime:p=><StatsScreen {...p} isFullTime={true}/>,
+    leaderboards:p=><LeaderboardScreen {...p}/>,
+  };
+  return (screens[screen]||screens.login)({nav:setScreen});
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
